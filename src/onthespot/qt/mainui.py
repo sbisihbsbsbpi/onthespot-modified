@@ -654,9 +654,16 @@ class MainWindow(QMainWindow):
     def update_item_in_download_list(self, item, status, progress):
         self.statistics.setText(self.tr("{0} / {1}").format(config.get('total_downloaded_items'), format_bytes(config.get('total_downloaded_data'))))
         with download_queue_lock:
-            # Update status with colored badge
-            item['gui']['status_label'].setText(status)
-            item['gui']['status_label'].setStyleSheet(get_status_style(status))
+            # Check if GUI widgets still exist before updating
+            if 'gui' not in item or 'status_label' not in item['gui']:
+                return
+            try:
+                # Update status with colored badge
+                item['gui']['status_label'].setText(status)
+                item['gui']['status_label'].setStyleSheet(get_status_style(status))
+            except RuntimeError:
+                # Widget was deleted (row cleared from table)
+                return
 
             # Update progress bar with appropriate style
             if progress == 100:
