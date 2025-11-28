@@ -173,23 +173,30 @@ def get_modern_theme():
         color: {colors['text_primary']};
         border: 2px solid {colors['border']};
         border-radius: 8px;
-        padding: 8px 14px;
-        min-height: 20px;
+        padding: 8px 14px 8px 10px;
+        min-height: 24px;
     }}
-    
+
     QComboBox:hover {{
         border-color: {colors['text_muted']};
     }}
-    
+
     QComboBox:focus {{
         border-color: {colors['accent']};
     }}
-    
+
     QComboBox::drop-down {{
         border: none;
         width: 30px;
+        subcontrol-origin: padding;
+        subcontrol-position: top right;
     }}
-    
+
+    QComboBox::down-arrow {{
+        width: 12px;
+        height: 12px;
+    }}
+
     QComboBox QAbstractItemView {{
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
@@ -197,6 +204,17 @@ def get_modern_theme():
         border-radius: 8px;
         selection-background-color: {colors['accent']};
         selection-color: #000000;
+        padding: 4px;
+    }}
+
+    QComboBox QAbstractItemView::item {{
+        min-height: 28px;
+        padding: 4px 8px;
+    }}
+
+    QComboBox QAbstractItemView::item:selected {{
+        background-color: {colors['accent']};
+        color: #000000;
     }}
 """
 
@@ -339,19 +357,29 @@ def get_modern_theme_part2():
     QRadioButton {{
         color: {colors['text_primary']};
         spacing: 8px;
+        padding: 4px;
     }}
-    
+
     QRadioButton::indicator {{
-        width: 20px;
-        height: 20px;
-        border-radius: 10px;
-        border: 2px solid {colors['border']};
-        background-color: {colors['background_elevated']};
+        width: 18px;
+        height: 18px;
+        border-radius: 9px;
+        border: 2px solid {colors['text_secondary']};
+        background-color: {colors['background_alt']};
     }}
-    
+
+    QRadioButton::indicator:hover {{
+        border-color: {colors['accent']};
+    }}
+
     QRadioButton::indicator:checked {{
         background-color: {colors['accent']};
         border-color: {colors['accent']};
+        image: none;
+    }}
+
+    QRadioButton::indicator:checked::after {{
+        background-color: white;
     }}
 """
 

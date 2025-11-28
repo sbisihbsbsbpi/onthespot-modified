@@ -333,7 +333,7 @@ class MainWindow(QMainWindow):
         #self.tbl_sessions.setSortingEnabled(True)
         self.tbl_sessions.horizontalHeader().setSectionsMovable(True)
         self.tbl_sessions.horizontalHeader().setSectionsClickable(True)
-        self.tbl_sessions.horizontalHeader().resizeSection(0, 16)
+        self.tbl_sessions.horizontalHeader().resizeSection(0, 40)  # Wider for radio button visibility
         for i in range(1, 7):
             self.tbl_sessions.horizontalHeader().setSectionResizeMode(i, QHeaderView.ResizeMode.Stretch)
         self.set_login_fields()
