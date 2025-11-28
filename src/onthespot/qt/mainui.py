@@ -7,7 +7,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 from PyQt6 import uic, QtGui
 from PyQt6.QtCore import QThread, QDir, Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QIcon, QColor
-from PyQt6.QtWidgets import QApplication, QMainWindow, QHeaderView, QLabel, QPushButton, QProgressBar, QTableWidgetItem, QFileDialog, QRadioButton, QHBoxLayout, QWidget, QColorDialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QHeaderView, QLabel, QPushButton, QProgressBar, QTableWidgetItem, QFileDialog, QRadioButton, QHBoxLayout, QWidget, QColorDialog, QStatusBar
 from ..accounts import get_account_token, FillAccountPool
 from ..api.apple_music import apple_music_add_account, apple_music_get_track_metadata
 from ..api.bandcamp import bandcamp_add_account, bandcamp_get_track_metadata
@@ -27,6 +27,8 @@ from .settings import load_config, save_config
 from .thumb_listitem import LabelWithThumb
 from ..utils import is_latest_release, open_item, format_bytes
 from ..search import get_search_results
+from ..ui_theme import get_complete_theme, get_status_style, get_progress_bar_style, format_duration, COLORS
+from ..stealth import get_stealth_stats
 
 logger = get_logger('gui.main_ui')
 
@@ -88,7 +90,9 @@ class MainWindow(QMainWindow):
         QApplication.setStyle("fusion")
         uic.loadUi(os.path.join(self.path, "qtui", "main.ui"), self)
         self.setWindowIcon(self.get_icon('onthespot'))
-        self.centralwidget.setStyleSheet(config.get('theme'))
+
+        # Apply modern Spotify-inspired theme
+        self.apply_modern_theme()
 
         self.start_url = start_url
         logger.info(f"Initialising main window, logging session : {config.session_uuid}")
@@ -98,6 +102,9 @@ class MainWindow(QMainWindow):
         load_config(self)
 
         self.__splash_dialog = _dialog
+
+        # Initialize status bar with statistics
+        self.setup_status_bar()
 
         # Start/create session builder and queue processor
         fillaccountpool = FillAccountPool(gui=True)
@@ -131,11 +138,83 @@ class MainWindow(QMainWindow):
         logger.info("Main window init completed !")
 
 
+    def apply_modern_theme(self):
+        """Apply the modern Spotify-inspired theme."""
+        theme = get_complete_theme()
+        self.setStyleSheet(theme)
+        self.centralwidget.setStyleSheet(theme)
+
+
+    def setup_status_bar(self):
+        """Setup status bar with stealth stats, download speed, and queue count."""
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+
+        # Create status labels
+        self.stealth_status_label = QLabel("🛡️ Stealth: --/-- hr, --/-- day")
+        self.stealth_status_label.setStyleSheet(f"color: {COLORS['text_secondary']}; padding: 0 15px;")
+
+        self.speed_status_label = QLabel("⬇️ -- KB/s")
+        self.speed_status_label.setStyleSheet(f"color: {COLORS['text_secondary']}; padding: 0 15px;")
+
+        self.queue_status_label = QLabel("📥 0 downloading, 0 completed, 0 waiting")
+        self.queue_status_label.setStyleSheet(f"color: {COLORS['text_secondary']}; padding: 0 15px;")
+
+        # Add to status bar
+        self.status_bar.addWidget(self.stealth_status_label)
+        self.status_bar.addWidget(self.speed_status_label)
+        self.status_bar.addPermanentWidget(self.queue_status_label)
+
+        # Update timer for status bar (every 1 second)
+        self.status_timer = QTimer()
+        self.status_timer.timeout.connect(self.update_status_bar)
+        self.status_timer.start(1000)
+
+
     def get_icon(self, name):
         if name not in self.icon_cache:
             icon_path = os.path.join(config.app_root, 'resources', 'icons', f'{name}.png')
             self.icon_cache[name] = QIcon(icon_path)
         return self.icon_cache[name]
+
+
+    def update_status_bar(self):
+        """Update status bar with current statistics."""
+        try:
+            # Update stealth stats
+            if config.get('stealth_mode_enabled'):
+                stats = get_stealth_stats()
+                max_hr = config.get('stealth_max_tracks_per_hour', 20)
+                max_day = config.get('stealth_max_tracks_per_day', 100)
+                self.stealth_status_label.setText(
+                    f"🛡️ Stealth: {stats['tracks_this_hour']}/{max_hr} hr, {stats['tracks_today']}/{max_day} day"
+                )
+            else:
+                self.stealth_status_label.setText("🛡️ Stealth: OFF")
+
+            # Update queue stats
+            downloading = 0
+            completed = 0
+            waiting = 0
+            failed = 0
+
+            with download_queue_lock:
+                for item in download_queue.values():
+                    status = item.get('item_status', '').lower()
+                    if status in ('downloading', 'converting', 'getting info'):
+                        downloading += 1
+                    elif status in ('downloaded', 'already exists'):
+                        completed += 1
+                    elif status == 'waiting':
+                        waiting += 1
+                    elif status == 'failed':
+                        failed += 1
+
+            self.queue_status_label.setText(
+                f"📥 {downloading} active, {completed} done, {waiting} waiting, {failed} failed"
+            )
+        except Exception as e:
+            logger.debug(f"Status bar update error: {e}")
 
 
     def open_theme_dialog(self):
@@ -347,65 +426,75 @@ class MainWindow(QMainWindow):
         locate_btn = None
         delete_btn = None
 
-        # Items
+        # Items - Modern styled progress bar
         pbar = QProgressBar()
-        pbar.setStyleSheet("""
-            QProgressBar {
-                text-align: center;
-            }
-            QProgressBar::chunk {
-                background-color: #2596BE;
-                color: white;
-            }
-        """)
+        pbar.setStyleSheet(get_progress_bar_style())
         pbar.setValue(0)
-        pbar.setMinimumHeight(30)
+        pbar.setMinimumHeight(28)
+
+        # Modern button styling
+        btn_style = f"""
+            QPushButton {{
+                background-color: {COLORS['background_elevated']};
+                border: none;
+                border-radius: 6px;
+                padding: 6px 10px;
+                min-width: 32px;
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['background_hover']};
+            }}
+        """
+
         if config.get("download_copy_btn"):
             copy_btn = QPushButton()
-            #copy_btn.setText('Copy')
             copy_btn.setIcon(self.get_icon('link'))
             copy_btn.setToolTip(self.tr('Copy'))
-            copy_btn.setMinimumHeight(30)
+            copy_btn.setMinimumHeight(28)
+            copy_btn.setStyleSheet(btn_style)
             copy_btn.hide()
         cancel_btn = QPushButton()
-        # cancel_btn.setText('Cancel')
         cancel_btn.setIcon(self.get_icon('stop'))
         cancel_btn.setToolTip(self.tr('Cancel'))
-        cancel_btn.setMinimumHeight(30)
+        cancel_btn.setMinimumHeight(28)
+        cancel_btn.setStyleSheet(btn_style)
         cancel_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         retry_btn = QPushButton()
-        #retry_btn.setText('Retry')
         retry_btn.setIcon(self.get_icon('retry'))
         retry_btn.setToolTip(self.tr('Retry'))
-        retry_btn.setMinimumHeight(30)
+        retry_btn.setMinimumHeight(28)
+        retry_btn.setStyleSheet(btn_style)
         retry_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         retry_btn.hide()
         if config.get("download_open_btn"):
             open_btn = QPushButton()
-            #open_btn.setText('Open')
             open_btn.setIcon(self.get_icon('file'))
             open_btn.setToolTip(self.tr('Open'))
-            open_btn.setMinimumHeight(30)
+            open_btn.setMinimumHeight(28)
+            open_btn.setStyleSheet(btn_style)
             open_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             open_btn.hide()
         if config.get("download_locate_btn"):
             locate_btn = QPushButton()
-            #locate_btn.setText('Locate')
             locate_btn.setIcon(self.get_icon('folder'))
             locate_btn.setToolTip(self.tr('Locate'))
-            locate_btn.setMinimumHeight(30)
+            locate_btn.setMinimumHeight(28)
+            locate_btn.setStyleSheet(btn_style)
             locate_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             locate_btn.hide()
         if config.get("download_delete_btn"):
             delete_btn = QPushButton()
-            #delete_btn.setText('Delete')
             delete_btn.setIcon(self.get_icon('trash'))
             delete_btn.setToolTip(self.tr('Delete'))
-            delete_btn.setMinimumHeight(30)
+            delete_btn.setMinimumHeight(28)
+            delete_btn.setStyleSheet(btn_style)
             delete_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             delete_btn.hide()
 
         item_by = item_metadata.get('artists') if item_metadata.get('artists') else item_metadata.get('show_name')
+
+        # Get song duration
+        song_duration = format_duration(item_metadata.get('length'))
 
         playlist_name = ''
         playlist_by = ''
@@ -424,9 +513,11 @@ class MainWindow(QMainWindow):
         service_label.setIcon(self.get_icon(item_service))
         service_label.setBackground(QColor(0, 0, 0, 0))
 
+        # Colored status badge
         status_label = QLabel(self.tbl_dl_progress)
         status_label.setText(self.tr("Waiting"))
-        status_label.setStyleSheet("background-color: transparent;")
+        status_label.setStyleSheet(get_status_style("waiting"))
+        status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         actions = DownloadActionsButtons(item['local_id'], item_metadata, pbar, copy_btn, cancel_btn, retry_btn, open_btn, locate_btn, delete_btn)
 
         rows = self.tbl_dl_progress.rowCount()
@@ -435,15 +526,18 @@ class MainWindow(QMainWindow):
             title = config.get('explicit_label') + ' ' + item_metadata.get('title')
         else:
             title = item_metadata.get('title')
+
+        # Add duration to title display
+        title_with_duration = f"{title}  ⏱️ {song_duration}" if song_duration != "--:--" else title
+
         if config.get('show_download_thumbnails') and item_metadata.get('image_url'):
             self.tbl_dl_progress.setRowHeight(rows, config.get("thumbnail_size"))
-            item_label = LabelWithThumb(title, item_metadata.get('image_url'))
+            item_label = LabelWithThumb(title_with_duration, item_metadata.get('image_url'))
         else:
             item_label = QLabel(self.tbl_dl_progress)
-            item_label.setText(title)
-            item_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            item_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        item_label.setStyleSheet("background-color: transparent;")
+            item_label.setText(title_with_duration)
+            item_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        item_label.setStyleSheet(f"background-color: transparent; color: {COLORS['text_primary']}; padding-left: 8px;")
 
         # Add To List
         self.tbl_dl_progress.setItem(rows, 0, QTableWidgetItem(str(item['local_id'])))
@@ -490,9 +584,21 @@ class MainWindow(QMainWindow):
     def update_item_in_download_list(self, item, status, progress):
         self.statistics.setText(self.tr("{0} / {1}").format(config.get('total_downloaded_items'), format_bytes(config.get('total_downloaded_data'))))
         with download_queue_lock:
+            # Update status with colored badge
             item['gui']['status_label'].setText(status)
+            item['gui']['status_label'].setStyleSheet(get_status_style(status))
+
+            # Update progress bar with appropriate style
+            if progress == 100:
+                item['gui']['progress_bar'].setStyleSheet(get_progress_bar_style('completed'))
+            elif 'fail' in status.lower():
+                item['gui']['progress_bar'].setStyleSheet(get_progress_bar_style('failed'))
+            else:
+                item['gui']['progress_bar'].setStyleSheet(get_progress_bar_style())
+
             item['gui']['progress_bar'].setValue(progress)
             self.update_table_visibility()
+
             if item['item_status'] == 'Unavailable':
                 item['gui']["btn"]['cancel'].hide()
                 if config.get("download_copy_btn"):
@@ -560,7 +666,7 @@ class MainWindow(QMainWindow):
                     if download_queue[local_id]['item_status'] == "Waiting":
                         download_queue[local_id]['item_status'] = "Cancelled"
                         download_queue[local_id]['gui']['status_label'].setText(self.tr("Cancelled"))
-                        download_queue[local_id]['gui']['status_label'].setText(self.tr("Cancelled"))
+                        download_queue[local_id]['gui']['status_label'].setStyleSheet(get_status_style("cancelled"))
                         download_queue[local_id]['gui']['progress_bar'].setValue(0)
                         download_queue[local_id]['gui']["btn"]['cancel'].hide()
                         download_queue[local_id]['gui']["btn"]['retry'].show()
@@ -577,6 +683,8 @@ class MainWindow(QMainWindow):
                     if download_queue[local_id]['item_status'] in ("Failed", "Cancelled"):
                         download_queue[local_id]['item_status'] = "Waiting"
                         download_queue[local_id]['gui']['status_label'].setText(self.tr("Waiting"))
+                        download_queue[local_id]['gui']['status_label'].setStyleSheet(get_status_style("waiting"))
+                        download_queue[local_id]['gui']['progress_bar'].setStyleSheet(get_progress_bar_style())
                         download_queue[local_id]['gui']["btn"]['cancel'].show()
                         download_queue[local_id]['gui']["btn"]['retry'].hide()
                     row_count -= 1
