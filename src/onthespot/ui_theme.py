@@ -109,10 +109,10 @@ def get_modern_theme():
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
         border: none;
-        border-radius: 4px;
-        padding: 8px 16px;
+        border-radius: 3px;
+        padding: 4px 10px;
         font-weight: 600;
-        min-height: 20px;
+        min-height: 16px;
     }}
 
     QPushButton:hover {{
@@ -150,8 +150,8 @@ def get_modern_theme():
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
         border: 1px solid {colors['border']};
-        border-radius: 4px;
-        padding: 8px 12px;
+        border-radius: 3px;
+        padding: 4px 8px;
         selection-background-color: {colors['accent']};
         selection-color: #000000;
     }}
