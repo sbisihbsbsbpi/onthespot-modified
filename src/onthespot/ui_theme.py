@@ -550,16 +550,14 @@ def get_complete_theme():
 # Status badge styles for download queue
 def get_status_style(status):
     """Returns the style for a given download status."""
-    # Improved base style with better font rendering
-    # - Larger padding for better readability
-    # - Slightly smaller border-radius to reduce anti-aliasing issues
-    # - font-size ensures consistent text size
+    # Compact style to fit within default ~30px row height
+    # padding: 2px vertical, 10px horizontal
+    # No min-height - let content determine size
     base_style = '''
-        padding: 6px 14px;
-        border-radius: 4px;
+        padding: 2px 10px;
+        border-radius: 3px;
         font-weight: bold;
-        font-size: 12px;
-        min-height: 20px;
+        font-size: 11px;
     '''
 
     styles = {
