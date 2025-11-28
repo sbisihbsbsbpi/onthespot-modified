@@ -149,19 +149,28 @@ def get_modern_theme():
     QLineEdit, QTextEdit, QPlainTextEdit {{
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
-        border: 2px solid {colors['border']};
-        border-radius: 8px;
-        padding: 10px 14px;
+        border: 1px solid {colors['border']};
+        border-radius: 4px;
+        padding: 8px 12px;
         selection-background-color: {colors['accent']};
         selection-color: #000000;
     }}
-    
+
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
         border-color: {colors['accent']};
     }}
-    
+
     QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover {{
         border-color: {colors['text_muted']};
+    }}
+
+    /* Disabled info labels (version, statistics) - clean flat look */
+    QLineEdit:disabled {{
+        background-color: {colors['background_alt']};
+        color: {colors['text_primary']};
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
     }}
     
     /* ============================================ */
