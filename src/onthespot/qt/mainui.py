@@ -27,7 +27,7 @@ from .settings import load_config, save_config
 from .thumb_listitem import LabelWithThumb
 from ..utils import is_latest_release, open_item, format_bytes
 from ..search import get_search_results
-from ..ui_theme import get_complete_theme, get_status_style, get_progress_bar_style, format_duration, COLORS, set_accent_color, get_colors
+from ..ui_theme import get_complete_theme, get_status_style, get_progress_bar_style, get_button_style, format_duration, COLORS, set_accent_color, get_colors
 from ..stealth import get_stealth_stats
 
 logger = get_logger('gui.main_ui')
@@ -467,43 +467,32 @@ class MainWindow(QMainWindow):
         locate_btn = None
         delete_btn = None
 
-        # Items - Modern styled progress bar
+        # Items - Clean styled progress bar
         pbar = QProgressBar()
         pbar.setStyleSheet(get_progress_bar_style())
         pbar.setValue(0)
         pbar.setMinimumHeight(28)
 
-        # Modern button styling
-        btn_style = f"""
-            QPushButton {{
-                background-color: {COLORS['background_elevated']};
-                border: none;
-                border-radius: 6px;
-                padding: 6px 10px;
-                min-width: 32px;
-            }}
-            QPushButton:hover {{
-                background-color: {COLORS['background_hover']};
-            }}
-        """
+        # Clean button styling - no border radius for crisp icons
+        btn_style = get_button_style()
 
         if config.get("download_copy_btn"):
             copy_btn = QPushButton()
             copy_btn.setIcon(self.get_icon('link'))
             copy_btn.setToolTip(self.tr('Copy'))
-            copy_btn.setMinimumHeight(28)
+            copy_btn.setFixedSize(28, 28)
             copy_btn.setStyleSheet(btn_style)
             copy_btn.hide()
         cancel_btn = QPushButton()
         cancel_btn.setIcon(self.get_icon('stop'))
         cancel_btn.setToolTip(self.tr('Cancel'))
-        cancel_btn.setMinimumHeight(28)
+        cancel_btn.setFixedSize(28, 28)
         cancel_btn.setStyleSheet(btn_style)
         cancel_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         retry_btn = QPushButton()
         retry_btn.setIcon(self.get_icon('retry'))
         retry_btn.setToolTip(self.tr('Retry'))
-        retry_btn.setMinimumHeight(28)
+        retry_btn.setFixedSize(28, 28)
         retry_btn.setStyleSheet(btn_style)
         retry_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         retry_btn.hide()
@@ -511,7 +500,7 @@ class MainWindow(QMainWindow):
             open_btn = QPushButton()
             open_btn.setIcon(self.get_icon('file'))
             open_btn.setToolTip(self.tr('Open'))
-            open_btn.setMinimumHeight(28)
+            open_btn.setFixedSize(28, 28)
             open_btn.setStyleSheet(btn_style)
             open_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             open_btn.hide()
@@ -519,7 +508,7 @@ class MainWindow(QMainWindow):
             locate_btn = QPushButton()
             locate_btn.setIcon(self.get_icon('folder'))
             locate_btn.setToolTip(self.tr('Locate'))
-            locate_btn.setMinimumHeight(28)
+            locate_btn.setFixedSize(28, 28)
             locate_btn.setStyleSheet(btn_style)
             locate_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             locate_btn.hide()
@@ -527,7 +516,7 @@ class MainWindow(QMainWindow):
             delete_btn = QPushButton()
             delete_btn.setIcon(self.get_icon('trash'))
             delete_btn.setToolTip(self.tr('Delete'))
-            delete_btn.setMinimumHeight(28)
+            delete_btn.setFixedSize(28, 28)
             delete_btn.setStyleSheet(btn_style)
             delete_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             delete_btn.hide()
