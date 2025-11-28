@@ -446,19 +446,47 @@ class DownloadWorker(QObject):
                     elif item_service == "apple_music":
                         default_format = '.m4a'
                         bitrate = "256k"
-                        webplayback_info = apple_music_get_webplayback_info(token, item_id)
 
-                        stream_url = None
-                        for asset in webplayback_info["assets"]:
-                            if asset["flavor"] == "28:ctrp256":
-                                stream_url = asset["URL"]
-
-                        if not stream_url:
-                            logger.error(f'Apple music playback info invalid: {webplayback_info}')
+                        # Get playback info with improved error handling
+                        try:
+                            webplayback_info = apple_music_get_webplayback_info(token, item_id)
+                        except Exception as e:
+                            logger.error(f"Failed to get Apple Music playback info for {item_id}: {e}")
+                            item['item_status'] = 'Failed'
+                            if self.gui:
+                                self.progress.emit(item, self.tr("Failed"), 0)
+                            self.readd_item_to_download_queue(item)
                             continue
 
-                        decryption_key = apple_music_get_decryption_key(token, stream_url, item_id)
+                        # Find stream URL - prefer 256k AAC
+                        stream_url = None
+                        available_flavors = []
+                        for asset in webplayback_info.get("assets", []):
+                            available_flavors.append(asset.get("flavor", "unknown"))
+                            if asset["flavor"] == "28:ctrp256":
+                                stream_url = asset["URL"]
+                                break
 
+                        if not stream_url:
+                            logger.error(f'No suitable stream found for track {item_id}. Available flavors: {available_flavors}')
+                            item['item_status'] = 'Failed'
+                            if self.gui:
+                                self.progress.emit(item, self.tr("Failed"), 0)
+                            self.readd_item_to_download_queue(item)
+                            continue
+
+                        # Get decryption key with improved error handling
+                        try:
+                            decryption_key = apple_music_get_decryption_key(token, stream_url, item_id)
+                        except Exception as e:
+                            logger.error(f"Failed to get decryption key for {item_id}: {e}")
+                            item['item_status'] = 'Failed'
+                            if self.gui:
+                                self.progress.emit(item, self.tr("Failed"), 0)
+                            self.readd_item_to_download_queue(item)
+                            continue
+
+                        # Download encrypted stream
                         ydl_opts = {}
                         ydl_opts['quiet'] = True
                         ydl_opts['no_warnings'] = True
@@ -469,12 +497,22 @@ class DownloadWorker(QObject):
                         ydl_opts['noprogress'] = True
                         if self.gui:
                             ydl_opts['progress_hooks'] = [lambda d: self.yt_dlp_progress_hook(item, d)]
-                        with YoutubeDL(ydl_opts) as video:
-                            video.download(stream_url)
+
+                        try:
+                            with YoutubeDL(ydl_opts) as video:
+                                video.download(stream_url)
+                        except Exception as e:
+                            logger.error(f"Failed to download stream for {item_id}: {e}")
+                            item['item_status'] = 'Failed'
+                            if self.gui:
+                                self.progress.emit(item, self.tr("Failed"), 0)
+                            self.readd_item_to_download_queue(item)
+                            continue
 
                         if self.gui:
                             self.progress.emit(item, self.tr("Decrypting"), 99)
 
+                        # Decrypt the downloaded file
                         decrypted_temp_file_path = temp_file_path + '.m4a'
                         command = [
                             config.get('_ffmpeg_bin_path'),
@@ -487,11 +525,21 @@ class DownloadWorker(QObject):
                             "+faststart",
                             decrypted_temp_file_path
                         ]
-                        if os.name == 'nt':
-                            subprocess.check_call(command, shell=False, creationflags=subprocess.CREATE_NO_WINDOW)
-                        else:
-                            subprocess.check_call(command, shell=False)
 
+                        try:
+                            if os.name == 'nt':
+                                subprocess.check_call(command, shell=False, creationflags=subprocess.CREATE_NO_WINDOW)
+                            else:
+                                subprocess.check_call(command, shell=False)
+                        except subprocess.CalledProcessError as e:
+                            logger.error(f"FFmpeg decryption failed for {item_id}: {e}")
+                            item['item_status'] = 'Failed'
+                            if self.gui:
+                                self.progress.emit(item, self.tr("Failed"), 0)
+                            self.readd_item_to_download_queue(item)
+                            continue
+
+                        # Clean up and rename
                         if os.path.exists(temp_file_path):
                             os.remove(temp_file_path)
                         os.rename(decrypted_temp_file_path, temp_file_path)

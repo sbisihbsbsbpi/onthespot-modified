@@ -4,6 +4,7 @@ import m3u8
 from pathlib import Path
 import requests
 import re
+import time
 from uuid import uuid4
 import xml.etree.ElementTree as ET
 from pywidevine import PSSH, Cdm, Device
@@ -16,6 +17,82 @@ from ..utils import conv_list_format, make_call
 logger = get_logger("api.apple_music")
 BASE_URL = 'https://amp-api.music.apple.com/v1'
 WVN_LICENSE_URL = "https://play.itunes.apple.com/WebObjects/MZPlay.woa/wa/acquireWebPlaybackLicense"
+
+# Constants for improved reliability
+DEFAULT_TIMEOUT = 30  # seconds
+MAX_RETRIES = 3
+RETRY_DELAY = 2  # seconds
+TOKEN_EXPIRY_BUFFER = 300  # Refresh token 5 minutes before expiry
+
+
+def _decode_jwt_payload(token):
+    """Decode JWT token payload without verification (for expiry check only)."""
+    try:
+        # JWT format: header.payload.signature
+        parts = token.split('.')
+        if len(parts) != 3:
+            return None
+
+        # Decode payload (add padding if needed)
+        payload = parts[1]
+        padding = 4 - len(payload) % 4
+        if padding != 4:
+            payload += '=' * padding
+
+        decoded = base64.urlsafe_b64decode(payload)
+        return json.loads(decoded)
+    except Exception as e:
+        logger.debug(f"Failed to decode JWT: {e}")
+        return None
+
+
+def _is_token_expired(token):
+    """Check if JWT token is expired or about to expire."""
+    payload = _decode_jwt_payload(token)
+    if not payload:
+        return False  # Can't determine, assume valid
+
+    exp = payload.get('exp')
+    if not exp:
+        return False  # No expiry, assume valid
+
+    # Check if token expires within buffer time
+    return time.time() > (exp - TOKEN_EXPIRY_BUFFER)
+
+
+def _request_with_retry(session, method, url, max_retries=MAX_RETRIES, **kwargs):
+    """Make HTTP request with retry logic and timeout."""
+    kwargs.setdefault('timeout', DEFAULT_TIMEOUT)
+
+    last_exception = None
+    for attempt in range(max_retries):
+        try:
+            if method.upper() == 'GET':
+                response = session.get(url, **kwargs)
+            elif method.upper() == 'POST':
+                response = session.post(url, **kwargs)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
+
+            response.raise_for_status()
+            return response
+        except requests.exceptions.Timeout as e:
+            last_exception = e
+            logger.warning(f"Request timeout (attempt {attempt + 1}/{max_retries}): {url}")
+        except requests.exceptions.ConnectionError as e:
+            last_exception = e
+            logger.warning(f"Connection error (attempt {attempt + 1}/{max_retries}): {url}")
+        except requests.exceptions.HTTPError as e:
+            # Don't retry on client errors (4xx)
+            if e.response is not None and 400 <= e.response.status_code < 500:
+                raise
+            last_exception = e
+            logger.warning(f"HTTP error (attempt {attempt + 1}/{max_retries}): {e}")
+
+        if attempt < max_retries - 1:
+            time.sleep(RETRY_DELAY * (attempt + 1))  # Exponential backoff
+
+    raise last_exception or Exception(f"Request failed after {max_retries} attempts: {url}")
 
 
 def apple_music_add_account(media_user_token):
@@ -37,7 +114,12 @@ def apple_music_login_user(account):
     logger.info('Logging into Apple Music account...')
     try:
         session = requests.Session()
-        session.cookies.update({'media-user-token': account['login']['media-user-token']})
+        media_user_token = account['login']['media-user-token']
+
+        if not media_user_token:
+            raise ValueError("Media user token is empty. Please provide a valid token.")
+
+        session.cookies.update({'media-user-token': media_user_token})
         session.headers.update(
             {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:95.0) Gecko/20100101 Firefox/95.0",
@@ -45,7 +127,7 @@ def apple_music_login_user(account):
                 "Accept-Language": 'en-US',
                 "Accept-Encoding": "utf-8",
                 "content-type": "application/json",
-                "Media-User-Token": session.cookies.get_dict().get("media-user-token"),
+                "Media-User-Token": media_user_token,
                 "x-apple-renewal": "true",
                 "DNT": "1",
                 "Connection": "keep-alive",
@@ -56,43 +138,95 @@ def apple_music_login_user(account):
             }
         )
 
-        # Retrieve token from the homepage
-        home_page = session.get("https://music.apple.com").text
-        index_js_uri = re.search(r"/(assets/index-legacy[~-][^/]+\.js)", home_page).group(1)
-        index_js_page = session.get(f"https://music.apple.com/{index_js_uri}").text
-        token = re.search('(?=eyJh)(.*?)(?=")', index_js_page).group(1)
+        # Retrieve token from the homepage with timeout
+        logger.debug("Fetching Apple Music homepage...")
+        home_page = session.get("https://music.apple.com", timeout=DEFAULT_TIMEOUT).text
+
+        # Extract JS bundle path
+        js_match = re.search(r"/(assets/index-legacy[~-][^/]+\.js)", home_page)
+        if not js_match:
+            raise ValueError("Could not find Apple Music JavaScript bundle. Website structure may have changed.")
+
+        index_js_uri = js_match.group(1)
+        logger.debug(f"Found JS bundle: {index_js_uri}")
+
+        index_js_page = session.get(f"https://music.apple.com/{index_js_uri}", timeout=DEFAULT_TIMEOUT).text
+
+        # Extract Bearer token
+        token_match = re.search('(?=eyJh)(.*?)(?=")', index_js_page)
+        if not token_match:
+            raise ValueError("Could not extract Bearer token from JavaScript bundle.")
+
+        token = token_match.group(1)
         session.headers.update({"authorization": f"Bearer {token}"})
         session.params = {"l": 'en-US'}
 
-        account_data = session.get(f'{BASE_URL}/me/account?meta=subscription').json()
-        session.cookies.update({'itua': account_data.get('meta', {}).get('subscription', {}).get('storefront')})
+        # Get account info
+        logger.debug("Fetching account subscription info...")
+        account_response = session.get(f'{BASE_URL}/me/account?meta=subscription', timeout=DEFAULT_TIMEOUT)
+
+        if account_response.status_code == 401:
+            raise ValueError("Invalid or expired media-user-token. Please get a new token from Apple Music website.")
+
+        account_data = account_response.json()
+        storefront = account_data.get('meta', {}).get('subscription', {}).get('storefront')
+
+        if not storefront:
+            logger.warning("Could not determine storefront, defaulting to 'us'")
+            storefront = 'us'
+
+        session.cookies.update({'itua': storefront})
+
+        is_active = account_data.get('meta', {}).get('subscription', {}).get('active', False)
+        account_type = "premium" if is_active else 'free'
+
+        # Check if bearer token is about to expire
+        if _is_token_expired(token):
+            logger.warning("Bearer token is expired or about to expire. It will be refreshed on next login.")
+
+        logger.info(f"Apple Music login successful. Account type: {account_type}, Storefront: {storefront}")
 
         account_pool.append({
             "uuid": account['uuid'],
-            "username": account['login']['media-user-token'],
+            "username": media_user_token[:20] + "...",  # Truncate for privacy
             "service": "apple_music",
             "status": "active",
-            "account_type": "premium" if account_data.get('meta', {}).get('subscription', {}).get('active') else 'free',
+            "account_type": account_type,
             "bitrate": "256k",
             "login": {
-                "session": session
+                "session": session,
+                "bearer_token": token,  # Store for expiry checking
+                "token_fetched_at": time.time()  # Track when token was fetched
             }
         })
         return True
+
+    except requests.exceptions.Timeout:
+        error_msg = "Connection timeout - Apple Music servers may be slow or unreachable"
+        logger.error(error_msg)
+    except requests.exceptions.ConnectionError:
+        error_msg = "Connection error - check your internet connection"
+        logger.error(error_msg)
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"Validation error: {error_msg}")
     except Exception as e:
-        logger.error(f"Unknown Exception: {str(e)}")
-        account_pool.append({
-            "uuid": account['uuid'],
-            "username": account['login']['media-user-token'],
-            "service": "apple_music",
-            "status": "error",
-            "account_type": "N/A",
-            "bitrate": "N/A",
-            "login": {
-                "session": ""
-            }
-        })
-        return False
+        error_msg = f"Unknown error: {str(e)}"
+        logger.error(error_msg)
+
+    # Login failed - add error account
+    account_pool.append({
+        "uuid": account['uuid'],
+        "username": account['login']['media-user-token'][:20] + "..." if account['login']['media-user-token'] else "N/A",
+        "service": "apple_music",
+        "status": "error",
+        "account_type": "N/A",
+        "bitrate": "N/A",
+        "login": {
+            "session": ""
+        }
+    })
+    return False
 
 
 def apple_music_get_token(parsing_index):
@@ -172,29 +306,45 @@ def apple_music_get_search_results(session, search_term, content_types):
 
 
 def apple_music_get_track_metadata(session, item_id):
+    logger.debug(f"Fetching metadata for track: {item_id}")
     params = {}
     params['include'] = 'lyrics'
     track_data = make_call(f'{BASE_URL}/catalog/{session.cookies.get("itua")}/songs/{item_id}', params=params, session=session)
+
+    # Validate track data
+    if not track_data.get('data'):
+        raise ValueError(f"No data returned for track {item_id}. Track may not exist or be unavailable in your region.")
+
+    album_data = None
     try:
         album_id = track_data.get('data', [])[0].get('relationships', {}).get('albums', {}).get('data', [])[0].get('id', {})
         album_data = make_call(f'{BASE_URL}/catalog/{session.cookies.get("itua")}/albums/{album_id}', session=session)
-    except Exception:
-        album_data = ''
+    except (IndexError, KeyError, TypeError) as e:
+        logger.warning(f"Could not fetch album data for track {item_id}: {e}")
+        album_data = None
+    except Exception as e:
+        logger.warning(f"Unexpected error fetching album data for track {item_id}: {e}")
+        album_data = None
 
     # Artists
     artists = []
-    for artist in track_data.get('data', [])[0].get('attributes', {}).get('artistName').replace("&", ",").split(","):
-        artists.append(artist.strip())
+    artist_name = track_data.get('data', [])[0].get('attributes', {}).get('artistName', '')
+    if artist_name:
+        for artist in artist_name.replace("&", ",").split(","):
+            artists.append(artist.strip())
 
     info = {}
     info['item_id'] = track_data.get('data', [])[0].get('id')
     info['album_name'] = track_data.get('data', [])[0].get('attributes', {}).get('albumName')
     info['genre'] = conv_list_format(track_data.get('data', [])[0].get('attributes', {}).get('genreNames', []))
-    #info['track_number'] = track_data.get('data', [])[0].get('attributes', {}).get('trackNumber')
+
+    # Release year extraction with logging
     try:
-        info['release_year'] = track_data.get('data', [])[0].get('attributes', {}).get('releaseDate').split('-')[0]
-    except Exception:
-        pass
+        release_date = track_data.get('data', [])[0].get('attributes', {}).get('releaseDate')
+        if release_date:
+            info['release_year'] = release_date.split('-')[0]
+    except (AttributeError, IndexError) as e:
+        logger.debug(f"Could not extract release year for track {item_id}: {e}")
     info['length'] = str(track_data.get('data', [])[0].get('attributes', {}).get('durationInMillis'))
     info['isrc'] = track_data.get('data', [])[0].get('attributes', {}).get('isrc')
 
@@ -323,21 +473,75 @@ def apple_music_get_lyrics(session, item_id, item_type, metadata, filepath):
 
 
 def apple_music_get_webplayback_info(session, item_id):
-    json = {}
-    json['salableAdamId'] = item_id  # Corrected variable name from track_id to item_id
-    webplayback_info = session.post('https://play.itunes.apple.com/WebObjects/MZPlay.woa/wa/webPlayback', json=json).json()
-    return webplayback_info.get("songList")[0]
+    """Get webplayback info for a track, including stream URLs."""
+    logger.debug(f"Getting webplayback info for track: {item_id}")
+
+    payload = {'salableAdamId': item_id}
+
+    try:
+        response = session.post(
+            'https://play.itunes.apple.com/WebObjects/MZPlay.woa/wa/webPlayback',
+            json=payload,
+            timeout=DEFAULT_TIMEOUT
+        )
+        response.raise_for_status()
+        webplayback_info = response.json()
+    except requests.exceptions.Timeout:
+        raise Exception(f"Timeout getting playback info for track {item_id}")
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            raise Exception("Authentication failed - your media-user-token may have expired")
+        elif e.response.status_code == 403:
+            raise Exception(f"Access denied for track {item_id} - may require subscription")
+        raise Exception(f"HTTP error getting playback info: {e}")
+
+    song_list = webplayback_info.get("songList")
+    if not song_list:
+        # Check for error messages
+        failure_type = webplayback_info.get("failureType", "")
+        if "SUBSCRIPTION" in failure_type.upper():
+            raise Exception(f"Subscription required to play track {item_id}")
+        elif "GEOGRAPHIC" in failure_type.upper() or "STOREFRONT" in failure_type.upper():
+            raise Exception(f"Track {item_id} is not available in your region")
+        elif failure_type:
+            raise Exception(f"Playback failed for track {item_id}: {failure_type}")
+        else:
+            raise Exception(f"No playback info returned for track {item_id}")
+
+    return song_list[0]
 
 
 def apple_music_get_decryption_key(session, stream_url, item_id):
-    # Extract the PSSH (Protection System Specific Header) from the m3u8 object
-    m3u8_obj = m3u8.load(stream_url, verify_ssl=False)
-    pssh = m3u8_obj.keys[0].uri if m3u8_obj.keys else None
+    """Extract DRM decryption key using Widevine CDM."""
+    logger.debug(f"Getting decryption key for track: {item_id}")
 
+    # Load m3u8 playlist
     try:
+        m3u8_obj = m3u8.load(stream_url, verify_ssl=False)
+    except Exception as e:
+        raise Exception(f"Failed to load m3u8 playlist for track {item_id}: {e}")
+
+    # Extract PSSH (Protection System Specific Header)
+    if not m3u8_obj.keys:
+        raise Exception(f"No encryption keys found in stream for track {item_id}. Track may be unencrypted or unavailable.")
+
+    pssh = m3u8_obj.keys[0].uri
+    if not pssh:
+        raise Exception(f"PSSH data is empty for track {item_id}")
+
+    logger.debug(f"Found PSSH data for track {item_id}")
+
+    cdm_session = None
+    try:
+        # Parse PSSH and create Widevine challenge
         widevine_pssh_data = WidevinePsshData()
         widevine_pssh_data.algorithm = 1
-        widevine_pssh_data.key_ids.append(base64.b64decode(pssh.split(",")[1]))
+
+        try:
+            pssh_data = pssh.split(",")[1]
+            widevine_pssh_data.key_ids.append(base64.b64decode(pssh_data))
+        except (IndexError, ValueError) as e:
+            raise Exception(f"Invalid PSSH format for track {item_id}: {e}")
 
         pssh_obj = PSSH(widevine_pssh_data.SerializeToString())
         cdm = Cdm.from_device(Device.loads(WVN_KEY))
@@ -347,27 +551,55 @@ def apple_music_get_decryption_key(session, stream_url, item_id):
             cdm.get_license_challenge(cdm_session, pssh_obj)
         ).decode()
 
-        json = {}
-        json['challenge'] = challenge
-        json['key-system'] = 'com.widevine.alpha'
-        json['uri'] = pssh
-        json['adamId'] = item_id
-        json['isLibrary'] = False
-        json['user-initiated'] = True
+        # Request license from Apple
+        license_payload = {
+            'challenge': challenge,
+            'key-system': 'com.widevine.alpha',
+            'uri': pssh,
+            'adamId': item_id,
+            'isLibrary': False,
+            'user-initiated': True
+        }
 
-        license_data = session.post(WVN_LICENSE_URL, json=json).json()
+        logger.debug(f"Requesting license for track {item_id}")
+
+        try:
+            license_response = session.post(WVN_LICENSE_URL, json=license_payload, timeout=DEFAULT_TIMEOUT)
+            license_response.raise_for_status()
+            license_data = license_response.json()
+        except requests.exceptions.Timeout:
+            raise Exception(f"Timeout requesting license for track {item_id}")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 401:
+                raise Exception("License request failed - authentication expired")
+            elif e.response.status_code == 403:
+                raise Exception(f"License denied for track {item_id} - subscription may be required")
+            raise Exception(f"License request failed: {e}")
+
+        # Check for errors in license response
+        if 'error' in license_data:
+            error_msg = license_data.get('error', {}).get('message', 'Unknown error')
+            raise Exception(f"License server error for track {item_id}: {error_msg}")
 
         wvn_license = license_data.get('license')
+        if not wvn_license:
+            raise Exception(f"No license returned for track {item_id} - check subscription status")
 
+        # Parse license and extract decryption key
         cdm.parse_license(cdm_session, wvn_license)
-        decryption_key = next(
-            key for key in cdm.get_keys(cdm_session) if key.type == "CONTENT"
-        ).key.hex()
+
+        content_keys = [key for key in cdm.get_keys(cdm_session) if key.type == "CONTENT"]
+        if not content_keys:
+            raise Exception(f"No content key found in license for track {item_id}")
+
+        decryption_key = content_keys[0].key.hex()
+        logger.debug(f"Successfully obtained decryption key for track {item_id}")
+
+        return decryption_key
 
     finally:
-        cdm.close(cdm_session)
-
-    return decryption_key
+        if cdm_session:
+            cdm.close(cdm_session)
 
 
 def apple_music_get_album_track_ids(session, album_id):
