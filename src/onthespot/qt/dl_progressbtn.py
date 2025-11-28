@@ -13,9 +13,9 @@ class DownloadActionsButtons(QWidget):
         self.local_id = local_id
         self.item_metadata = item_metadata
         layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(pbar)
+        layout.setContentsMargins(4, 2, 4, 2)
+        layout.setSpacing(4)
+        layout.addWidget(pbar, 1)  # stretch=1 so progress bar takes available space
         if copy_btn is not None:
             self.copy_btn = copy_btn
             copy_btn.clicked.connect(self.copy_link)

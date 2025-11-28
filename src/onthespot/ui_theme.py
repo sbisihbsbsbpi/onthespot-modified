@@ -613,10 +613,10 @@ def get_progress_bar_style(status='default'):
             border-radius: 3px;
             text-align: center;
             color: white;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: bold;
-            min-height: 12px;
-            max-height: 12px;
+            min-height: 18px;
+            max-height: 18px;
         }}
         QProgressBar::chunk {{
             background-color: {color};
@@ -631,10 +631,8 @@ def get_button_style():
         QPushButton {{
             background-color: {COLORS['background_elevated']};
             border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            min-width: 26px;
-            min-height: 22px;
+            border-radius: 3px;
+            padding: 2px;
         }}
         QPushButton:hover {{
             background-color: {COLORS['background_hover']};
