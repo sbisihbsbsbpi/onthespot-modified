@@ -542,20 +542,30 @@ def get_complete_theme():
 # Status badge styles for download queue
 def get_status_style(status):
     """Returns the style for a given download status."""
-    base_style = 'padding: 4px 12px; border-radius: 12px; font-weight: 600;'
+    # Improved base style with better font rendering
+    # - Larger padding for better readability
+    # - Slightly smaller border-radius to reduce anti-aliasing issues
+    # - font-size ensures consistent text size
+    base_style = '''
+        padding: 6px 14px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 12px;
+        min-height: 20px;
+    '''
 
     styles = {
-        'downloading': f'background-color: {COLORS["info"]}; color: white; {base_style}',
-        'completed': f'background-color: {COLORS["success"]}; color: white; {base_style}',
-        'downloaded': f'background-color: {COLORS["success"]}; color: white; {base_style}',
-        'failed': f'background-color: {COLORS["error"]}; color: white; {base_style}',
-        'waiting': f'background-color: {COLORS["warning"]}; color: #000; {base_style}',
-        'cancelled': f'background-color: {COLORS["text_muted"]}; color: white; {base_style}',
-        'already exists': f'background-color: {COLORS["text_muted"]}; color: white; {base_style}',
-        'rate limited': f'background-color: {COLORS["warning"]}; color: #000; {base_style}',
-        'converting': f'background-color: {COLORS["info"]}; color: white; {base_style}',
-        'getting info': f'background-color: {COLORS["info"]}; color: white; {base_style}',
-        'unavailable': f'background-color: {COLORS["error"]}; color: white; {base_style}',
+        'downloading': f'background-color: {COLORS["info"]}; color: #ffffff; {base_style}',
+        'completed': f'background-color: {COLORS["success"]}; color: #ffffff; {base_style}',
+        'downloaded': f'background-color: {COLORS["success"]}; color: #ffffff; {base_style}',
+        'failed': f'background-color: {COLORS["error"]}; color: #ffffff; {base_style}',
+        'waiting': f'background-color: {COLORS["warning"]}; color: #000000; {base_style}',
+        'cancelled': f'background-color: {COLORS["text_muted"]}; color: #ffffff; {base_style}',
+        'already exists': f'background-color: {COLORS["text_muted"]}; color: #ffffff; {base_style}',
+        'rate limited': f'background-color: {COLORS["warning"]}; color: #000000; {base_style}',
+        'converting': f'background-color: {COLORS["info"]}; color: #ffffff; {base_style}',
+        'getting info': f'background-color: {COLORS["info"]}; color: #ffffff; {base_style}',
+        'unavailable': f'background-color: {COLORS["error"]}; color: #ffffff; {base_style}',
     }
 
     if not status:
@@ -571,7 +581,7 @@ def get_status_style(status):
     if 'done' in status_lower:
         return styles['completed']
     if 'wait' in status_lower:
-        return f'background-color: #8b5cf6; color: white; {base_style}'  # Purple for stealth waiting
+        return f'background-color: #8b5cf6; color: #ffffff; {base_style}'  # Purple for stealth waiting
     if 'download' in status_lower:
         return styles['downloading']
     if 'convert' in status_lower:
@@ -586,7 +596,7 @@ def get_status_style(status):
 
 
 def get_progress_bar_style(status='default'):
-    """Returns animated progress bar style."""
+    """Returns progress bar style with clean rendering."""
     if status == 'completed':
         color = COLORS['success']
     elif status == 'failed':
@@ -596,20 +606,21 @@ def get_progress_bar_style(status='default'):
     else:
         color = COLORS['accent']
 
+    # Reduced border-radius for cleaner rendering, solid colors instead of gradients
     return f"""
         QProgressBar {{
             background-color: {COLORS['progress_bg']};
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             text-align: center;
             color: {COLORS['text_primary']};
-            font-weight: 600;
-            min-height: 26px;
+            font-weight: bold;
+            font-size: 12px;
+            min-height: 24px;
         }}
         QProgressBar::chunk {{
-            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                stop:0 {color}, stop:0.5 {COLORS['accent_hover']}, stop:1 {color});
-            border-radius: 6px;
+            background-color: {color};
+            border-radius: 4px;
         }}
     """
 
