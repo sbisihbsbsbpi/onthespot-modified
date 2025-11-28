@@ -34,7 +34,6 @@ def get_modern_theme():
     QMainWindow, QWidget {{
         background-color: {COLORS['background']};
         color: {COLORS['text_primary']};
-        font-family: 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
         font-size: 13px;
     }}
     
