@@ -211,16 +211,20 @@ class MainWindow(QMainWindow):
         self.settings_bookmark_video_downloads.clicked.connect(lambda: self.settings_scroll_area.verticalScrollBar().setValue(9999))
 
 
-        self.clear_cache.clicked.connect(lambda:
-            shutil.rmtree(os.path.join(cache_dir(), "reqcache")) and
-            shutil.rmtree(os.path.join(cache_dir(), "logs")) and
+        self.clear_cache.clicked.connect(lambda: (
+            shutil.rmtree(os.path.join(cache_dir(), "reqcache"), ignore_errors=True),
+            shutil.rmtree(os.path.join(cache_dir(), "logs"), ignore_errors=True),
             self.show_popup_dialog(self.tr("Cache Cleared"))
-            )
-        self.export_logs.clicked.connect(lambda: shutil.copy(
-            os.path.join(cache_dir(), "logs", config.session_uuid, "onthespot.log"),
-            os.path.join(os.path.expanduser("~"), "Downloads", "onthespot.log")) and
-            self.show_popup_dialog(self.tr("Logs exported to '{0}'").format(os.path.join(os.path.expanduser("~"), "Downloads", "onthespot.log") or True))
-            )
+        ))
+        self.export_logs.clicked.connect(lambda: (
+            shutil.copy(
+                os.path.join(cache_dir(), "logs", config.session_uuid, "onthespot.log"),
+                os.path.join(os.path.expanduser("~"), "Downloads", "onthespot.log")
+            ),
+            self.show_popup_dialog(self.tr("Logs exported to '{0}'").format(
+                os.path.join(os.path.expanduser("~"), "Downloads", "onthespot.log")
+            ))
+        ))
         self.donate.clicked.connect(lambda: open_item('https://justin025.github.io/about.html'))
 
 
