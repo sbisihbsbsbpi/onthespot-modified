@@ -550,14 +550,13 @@ def get_complete_theme():
 # Status badge styles for download queue
 def get_status_style(status):
     """Returns the style for a given download status."""
-    # Compact style to fit within default ~30px row height
-    # padding: 2px vertical, 10px horizontal
-    # No min-height - let content determine size
+    # Compact style - widget has fixed height of 22px set in mainui.py
     base_style = '''
-        padding: 2px 10px;
+        padding: 0px 8px;
         border-radius: 3px;
         font-weight: bold;
         font-size: 11px;
+        margin: 0px;
     '''
 
     styles = {
