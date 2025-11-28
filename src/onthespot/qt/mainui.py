@@ -409,15 +409,30 @@ class MainWindow(QMainWindow):
         # Clear the table
         while self.tbl_sessions.rowCount() > 0:
             self.tbl_sessions.removeRow(0)
+
+        # Create a button group for exclusive radio button selection
+        if not hasattr(self, 'account_radio_group'):
+            from PyQt6.QtWidgets import QButtonGroup
+            self.account_radio_group = QButtonGroup(self)
+            self.account_radio_group.setExclusive(True)
+        else:
+            # Clear existing buttons from group
+            for btn in self.account_radio_group.buttons():
+                self.account_radio_group.removeButton(btn)
+
         sn = 0
         for account in account_pool:
             sn = sn + 1
             rows = self.tbl_sessions.rowCount()
 
             radiobutton = QRadioButton()
-            radiobutton.clicked.connect(lambda: config.set('active_account_number', self.tbl_sessions.currentRow()))
+            row_index = rows  # Capture the current row index
+            radiobutton.clicked.connect(lambda checked, r=row_index: self.select_active_account(r))
             if sn == config.get("active_account_number") + 1:
                 radiobutton.setChecked(True)
+
+            # Add to button group for exclusive selection
+            self.account_radio_group.addButton(radiobutton, rows)
 
             remove_btn = QPushButton(self.tbl_sessions)
             remove_btn.setIcon(self.get_icon('trash'))
@@ -438,6 +453,11 @@ class MainWindow(QMainWindow):
             self.tbl_sessions.setItem(rows, 5, QTableWidgetItem(status))
             self.tbl_sessions.setCellWidget(rows, 6, remove_btn)
         logger.info("Accounts table was populated !")
+
+    def select_active_account(self, row):
+        """Set the active account when radio button is clicked."""
+        config.set('active_account_number', row)
+        logger.info(f"Active account set to row {row}")
 
 
     def add_item_to_download_list(self, item, item_metadata):

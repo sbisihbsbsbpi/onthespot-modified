@@ -356,30 +356,27 @@ def get_modern_theme_part2():
     
     QRadioButton {{
         color: {colors['text_primary']};
-        spacing: 8px;
-        padding: 4px;
+        spacing: 6px;
+        padding: 2px;
+        background-color: transparent;
     }}
 
     QRadioButton::indicator {{
-        width: 18px;
-        height: 18px;
-        border-radius: 9px;
-        border: 2px solid {colors['text_secondary']};
-        background-color: {colors['background_alt']};
+        width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        border: 2px solid #888888;
+        background-color: #2a2a2a;
     }}
 
     QRadioButton::indicator:hover {{
         border-color: {colors['accent']};
+        background-color: #333333;
     }}
 
     QRadioButton::indicator:checked {{
+        border: 2px solid {colors['accent']};
         background-color: {colors['accent']};
-        border-color: {colors['accent']};
-        image: none;
-    }}
-
-    QRadioButton::indicator:checked::after {{
-        background-color: white;
     }}
 """
 
