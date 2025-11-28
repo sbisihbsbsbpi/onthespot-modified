@@ -197,22 +197,39 @@ class MainWindow(QMainWindow):
             completed = 0
             waiting = 0
             failed = 0
+            stealth_waiting = 0
 
             with download_queue_lock:
                 for item in download_queue.values():
                     status = item.get('item_status', '').lower()
                     if status in ('downloading', 'converting', 'getting info'):
                         downloading += 1
-                    elif status in ('downloaded', 'already exists'):
+                    elif status in ('downloaded', 'already exists') or 'done' in status:
                         completed += 1
                     elif status == 'waiting':
                         waiting += 1
-                    elif status == 'failed':
+                    elif 'wait' in status:  # Stealth waiting (e.g., "Done · Wait 1m 30s")
+                        stealth_waiting += 1
+                    elif status == 'failed' or 'fail' in status:
                         failed += 1
 
-            self.queue_status_label.setText(
-                f"📥 {downloading} active, {completed} done, {waiting} waiting, {failed} failed"
-            )
+            # Include stealth waiting in queue display
+            queue_text = f"📥 {downloading} active, {completed} done"
+            if waiting > 0:
+                queue_text += f", {waiting} queued"
+            if stealth_waiting > 0:
+                queue_text += f", {stealth_waiting} stealth"
+            if failed > 0:
+                queue_text += f", {failed} failed"
+
+            self.queue_status_label.setText(queue_text)
+
+            # Update download speed (placeholder - actual implementation needs speed tracking)
+            if downloading > 0:
+                self.speed_status_label.setText(f"⬇️ {downloading} downloading...")
+            else:
+                self.speed_status_label.setText("⬇️ Idle")
+
         except Exception as e:
             logger.debug(f"Status bar update error: {e}")
 
@@ -222,7 +239,7 @@ class MainWindow(QMainWindow):
         colorpicker.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         colorpicker.setWindowFlag(Qt.WindowType.Dialog, True)
         colorpicker.setWindowTitle("OnTheSpot - Color Picker")
-        colorpicker.setStyleSheet(config.get('theme'))
+        colorpicker.setStyleSheet(get_complete_theme())
 
         if colorpicker.exec() == QColorDialog.DialogCode.Accepted:
             color = colorpicker.selectedColor()
@@ -239,7 +256,8 @@ class MainWindow(QMainWindow):
                     stylesheet = f'background-color: {color.name()}; color: black;'
                 config.set('theme', stylesheet)
                 config.save()
-                self.centralwidget.setStyleSheet(stylesheet)
+                # Apply modern theme with custom accent (note: full theme preserved)
+                self.apply_modern_theme()
                 self.__splash_dialog.update_theme(stylesheet)
 
 

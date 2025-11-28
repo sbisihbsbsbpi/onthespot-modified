@@ -34,7 +34,7 @@ def get_modern_theme():
     QMainWindow, QWidget {{
         background-color: {COLORS['background']};
         color: {COLORS['text_primary']};
-        font-family: 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+        font-family: 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
         font-size: 13px;
     }}
     
@@ -482,23 +482,47 @@ def get_complete_theme():
 # Status badge styles for download queue
 def get_status_style(status):
     """Returns the style for a given download status."""
+    base_style = 'padding: 4px 12px; border-radius: 12px; font-weight: 600;'
+
     styles = {
-        'downloading': f'background-color: {COLORS["info"]}; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'completed': f'background-color: {COLORS["success"]}; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'downloaded': f'background-color: {COLORS["success"]}; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'failed': f'background-color: {COLORS["error"]}; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'waiting': f'background-color: {COLORS["warning"]}; color: #000; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'cancelled': f'background-color: {COLORS["text_muted"]}; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'already exists': f'background-color: {COLORS["text_muted"]}; color: white; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
-        'rate limited': f'background-color: {COLORS["warning"]}; color: #000; padding: 4px 12px; border-radius: 12px; font-weight: 600;',
+        'downloading': f'background-color: {COLORS["info"]}; color: white; {base_style}',
+        'completed': f'background-color: {COLORS["success"]}; color: white; {base_style}',
+        'downloaded': f'background-color: {COLORS["success"]}; color: white; {base_style}',
+        'failed': f'background-color: {COLORS["error"]}; color: white; {base_style}',
+        'waiting': f'background-color: {COLORS["warning"]}; color: #000; {base_style}',
+        'cancelled': f'background-color: {COLORS["text_muted"]}; color: white; {base_style}',
+        'already exists': f'background-color: {COLORS["text_muted"]}; color: white; {base_style}',
+        'rate limited': f'background-color: {COLORS["warning"]}; color: #000; {base_style}',
+        'converting': f'background-color: {COLORS["info"]}; color: white; {base_style}',
+        'getting info': f'background-color: {COLORS["info"]}; color: white; {base_style}',
+        'unavailable': f'background-color: {COLORS["error"]}; color: white; {base_style}',
     }
+
+    if not status:
+        return f'background-color: {COLORS["background_elevated"]}; color: {COLORS["text_primary"]}; {base_style}'
+
+    status_lower = status.lower().strip()
+
+    # Direct match first
+    if status_lower in styles:
+        return styles[status_lower]
+
     # Check for partial matches (e.g., "✓ Done · Wait 1m 30s")
-    status_lower = status.lower()
-    if 'wait' in status_lower or 'done' in status_lower:
+    if 'done' in status_lower:
         return styles['completed']
+    if 'wait' in status_lower:
+        return f'background-color: #8b5cf6; color: white; {base_style}'  # Purple for stealth waiting
     if 'download' in status_lower:
         return styles['downloading']
-    return styles.get(status_lower, f'background-color: {COLORS["background_elevated"]}; color: {COLORS["text_primary"]}; padding: 4px 12px; border-radius: 12px;')
+    if 'convert' in status_lower:
+        return styles['converting']
+    if 'fail' in status_lower or 'error' in status_lower:
+        return styles['failed']
+    if 'cancel' in status_lower:
+        return styles['cancelled']
+
+    # Default style
+    return f'background-color: {COLORS["background_elevated"]}; color: {COLORS["text_primary"]}; {base_style}'
 
 
 def get_progress_bar_style(status='default'):
