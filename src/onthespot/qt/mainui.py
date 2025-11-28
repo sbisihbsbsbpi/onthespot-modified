@@ -27,7 +27,7 @@ from .settings import load_config, save_config
 from .thumb_listitem import LabelWithThumb
 from ..utils import is_latest_release, open_item, format_bytes
 from ..search import get_search_results
-from ..ui_theme import get_complete_theme, get_status_style, get_progress_bar_style, format_duration, COLORS
+from ..ui_theme import get_complete_theme, get_status_style, get_progress_bar_style, format_duration, COLORS, set_accent_color, get_colors
 from ..stealth import get_stealth_stats
 
 logger = get_logger('gui.main_ui')
@@ -90,6 +90,11 @@ class MainWindow(QMainWindow):
         QApplication.setStyle("fusion")
         uic.loadUi(os.path.join(self.path, "qtui", "main.ui"), self)
         self.setWindowIcon(self.get_icon('onthespot'))
+
+        # Load saved accent color if available
+        saved_accent = config.get('accent_color')
+        if saved_accent:
+            set_accent_color(saved_accent)
 
         # Apply modern Spotify-inspired theme
         self.apply_modern_theme()
@@ -238,27 +243,25 @@ class MainWindow(QMainWindow):
         colorpicker = QColorDialog(self)
         colorpicker.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         colorpicker.setWindowFlag(Qt.WindowType.Dialog, True)
-        colorpicker.setWindowTitle("OnTheSpot - Color Picker")
+        colorpicker.setWindowTitle("OnTheSpot - Pick Accent Color")
         colorpicker.setStyleSheet(get_complete_theme())
 
         if colorpicker.exec() == QColorDialog.DialogCode.Accepted:
             color = colorpicker.selectedColor()
 
             if color.isValid():
-                r, g, b = color.red(), color.green(), color.blue()
-                luminance = (0.299 * r + 0.587 * g + 0.114 * b)
+                # Set the accent color
+                set_accent_color(color.name())
 
-                if luminance < 128:
-                    # Dark color, set light font and progress bar
-                    stylesheet = f'background-color: {color.name()}; color: white;'
-                else:
-                    # Light color, set dark font and progress bar
-                    stylesheet = f'background-color: {color.name()}; color: black;'
-                config.set('theme', stylesheet)
+                # Save accent color to config
+                config.set('accent_color', color.name())
                 config.save()
-                # Apply modern theme with custom accent (note: full theme preserved)
+
+                # Apply the new theme with custom accent
                 self.apply_modern_theme()
-                self.__splash_dialog.update_theme(stylesheet)
+
+                # Update splash dialog
+                self.__splash_dialog.update_theme(get_complete_theme())
 
 
     def bind_button_inputs(self):

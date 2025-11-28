@@ -1,39 +1,73 @@
 """
 Modern Spotify-inspired UI Theme for OnTheSpot
-Features: Dark theme, green accents, rounded corners, smooth animations
+Features: Dark theme, customizable accents, rounded corners, smooth animations
 """
 
-# Spotify Color Palette
-COLORS = {
-    'background': '#121212',
-    'background_alt': '#181818',
-    'background_elevated': '#282828',
-    'background_hover': '#333333',
-    'surface': '#1a1a1a',
-    'accent': '#1DB954',  # Spotify Green
-    'accent_hover': '#1ed760',
-    'accent_pressed': '#169c46',
-    'text_primary': '#ffffff',
-    'text_secondary': '#b3b3b3',
-    'text_muted': '#727272',
-    'border': '#404040',
-    'success': '#1DB954',
-    'warning': '#f59e0b',
-    'error': '#ef4444',
-    'info': '#3b82f6',
-    'progress_bg': '#404040',
-}
+# Default accent color (Spotify Green)
+_custom_accent = None
+
+def set_accent_color(color_hex):
+    """Set a custom accent color for the theme."""
+    global _custom_accent
+    _custom_accent = color_hex
+
+def get_accent_color():
+    """Get the current accent color."""
+    return _custom_accent or '#1DB954'
+
+def _lighten_color(hex_color, percent=20):
+    """Lighten a hex color by a percentage."""
+    hex_color = hex_color.lstrip('#')
+    r = min(255, int(hex_color[0:2], 16) + int(255 * percent / 100))
+    g = min(255, int(hex_color[2:4], 16) + int(255 * percent / 100))
+    b = min(255, int(hex_color[4:6], 16) + int(255 * percent / 100))
+    return f'#{r:02x}{g:02x}{b:02x}'
+
+def _darken_color(hex_color, percent=20):
+    """Darken a hex color by a percentage."""
+    hex_color = hex_color.lstrip('#')
+    r = max(0, int(hex_color[0:2], 16) - int(255 * percent / 100))
+    g = max(0, int(hex_color[2:4], 16) - int(255 * percent / 100))
+    b = max(0, int(hex_color[4:6], 16) - int(255 * percent / 100))
+    return f'#{r:02x}{g:02x}{b:02x}'
+
+def get_colors():
+    """Get the color palette with current accent color."""
+    accent = get_accent_color()
+    return {
+        'background': '#121212',
+        'background_alt': '#181818',
+        'background_elevated': '#282828',
+        'background_hover': '#333333',
+        'surface': '#1a1a1a',
+        'accent': accent,
+        'accent_hover': _lighten_color(accent, 15),
+        'accent_pressed': _darken_color(accent, 15),
+        'text_primary': '#ffffff',
+        'text_secondary': '#b3b3b3',
+        'text_muted': '#727272',
+        'border': '#404040',
+        'success': accent,  # Use accent for success too
+        'warning': '#f59e0b',
+        'error': '#ef4444',
+        'info': '#3b82f6',
+        'progress_bg': '#404040',
+    }
+
+# For backwards compatibility
+COLORS = get_colors()
 
 def get_modern_theme():
     """Returns the complete modern Spotify-inspired stylesheet."""
+    colors = get_colors()  # Get dynamic colors with custom accent
     return f"""
     /* ============================================ */
     /*  GLOBAL STYLES                              */
     /* ============================================ */
     
     QMainWindow, QWidget {{
-        background-color: {COLORS['background']};
-        color: {COLORS['text_primary']};
+        background-color: {colors['background']};
+        color: {colors['text_primary']};
         font-size: 13px;
     }}
     
@@ -43,12 +77,12 @@ def get_modern_theme():
     
     QTabWidget::pane {{
         border: none;
-        background-color: {COLORS['background']};
+        background-color: {colors['background']};
     }}
     
     QTabBar::tab {{
-        background-color: {COLORS['background_alt']};
-        color: {COLORS['text_secondary']};
+        background-color: {colors['background_alt']};
+        color: {colors['text_secondary']};
         padding: 10px 20px;
         margin-right: 2px;
         border-top-left-radius: 8px;
@@ -58,13 +92,13 @@ def get_modern_theme():
     }}
     
     QTabBar::tab:selected {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
     }}
     
     QTabBar::tab:hover:!selected {{
-        background-color: {COLORS['background_hover']};
-        color: {COLORS['text_primary']};
+        background-color: {colors['background_hover']};
+        color: {colors['text_primary']};
     }}
     
     /* ============================================ */
@@ -72,8 +106,8 @@ def get_modern_theme():
     /* ============================================ */
     
     QPushButton {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
         border: none;
         border-radius: 8px;
         padding: 10px 20px;
@@ -82,30 +116,30 @@ def get_modern_theme():
     }}
     
     QPushButton:hover {{
-        background-color: {COLORS['background_hover']};
+        background-color: {colors['background_hover']};
     }}
     
     QPushButton:pressed {{
-        background-color: {COLORS['border']};
+        background-color: {colors['border']};
     }}
     
     QPushButton:disabled {{
-        background-color: {COLORS['surface']};
-        color: {COLORS['text_muted']};
+        background-color: {colors['surface']};
+        color: {colors['text_muted']};
     }}
     
     /* Primary accent buttons */
     QPushButton#btn_search, QPushButton#btn_login_add {{
-        background-color: {COLORS['accent']};
+        background-color: {colors['accent']};
         color: #000000;
     }}
     
     QPushButton#btn_search:hover, QPushButton#btn_login_add:hover {{
-        background-color: {COLORS['accent_hover']};
+        background-color: {colors['accent_hover']};
     }}
     
     QPushButton#btn_search:pressed, QPushButton#btn_login_add:pressed {{
-        background-color: {COLORS['accent_pressed']};
+        background-color: {colors['accent_pressed']};
     }}
     
     /* ============================================ */
@@ -113,21 +147,21 @@ def get_modern_theme():
     /* ============================================ */
     
     QLineEdit, QTextEdit, QPlainTextEdit {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
-        border: 2px solid {COLORS['border']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
+        border: 2px solid {colors['border']};
         border-radius: 8px;
         padding: 10px 14px;
-        selection-background-color: {COLORS['accent']};
+        selection-background-color: {colors['accent']};
         selection-color: #000000;
     }}
     
     QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
-        border-color: {COLORS['accent']};
+        border-color: {colors['accent']};
     }}
     
     QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover {{
-        border-color: {COLORS['text_muted']};
+        border-color: {colors['text_muted']};
     }}
     
     /* ============================================ */
@@ -135,20 +169,20 @@ def get_modern_theme():
     /* ============================================ */
     
     QComboBox {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
-        border: 2px solid {COLORS['border']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
+        border: 2px solid {colors['border']};
         border-radius: 8px;
         padding: 8px 14px;
         min-height: 20px;
     }}
     
     QComboBox:hover {{
-        border-color: {COLORS['text_muted']};
+        border-color: {colors['text_muted']};
     }}
     
     QComboBox:focus {{
-        border-color: {COLORS['accent']};
+        border-color: {colors['accent']};
     }}
     
     QComboBox::drop-down {{
@@ -157,31 +191,32 @@ def get_modern_theme():
     }}
     
     QComboBox QAbstractItemView {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
-        border: 1px solid {COLORS['border']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
+        border: 1px solid {colors['border']};
         border-radius: 8px;
-        selection-background-color: {COLORS['accent']};
+        selection-background-color: {colors['accent']};
         selection-color: #000000;
     }}
 """
 
 def get_modern_theme_part2():
     """Returns part 2 of the theme (split due to size)."""
+    colors = get_colors()  # Get dynamic colors with custom accent
     return f"""
     /* ============================================ */
     /*  TABLES                                     */
     /* ============================================ */
     
     QTableWidget, QTableView {{
-        background-color: {COLORS['background']};
-        alternate-background-color: {COLORS['background_alt']};
-        color: {COLORS['text_primary']};
+        background-color: {colors['background']};
+        alternate-background-color: {colors['background_alt']};
+        color: {colors['text_primary']};
         border: none;
         border-radius: 8px;
-        gridline-color: {COLORS['surface']};
-        selection-background-color: {COLORS['background_hover']};
-        selection-color: {COLORS['text_primary']};
+        gridline-color: {colors['surface']};
+        selection-background-color: {colors['background_hover']};
+        selection-color: {colors['text_primary']};
     }}
     
     QTableWidget::item, QTableView::item {{
@@ -190,16 +225,16 @@ def get_modern_theme_part2():
     }}
     
     QTableWidget::item:selected, QTableView::item:selected {{
-        background-color: {COLORS['background_hover']};
+        background-color: {colors['background_hover']};
     }}
     
     QTableWidget::item:hover, QTableView::item:hover {{
-        background-color: {COLORS['background_elevated']};
+        background-color: {colors['background_elevated']};
     }}
     
     QHeaderView::section {{
-        background-color: {COLORS['surface']};
-        color: {COLORS['text_secondary']};
+        background-color: {colors['surface']};
+        color: {colors['text_secondary']};
         padding: 10px;
         border: none;
         font-weight: 600;
@@ -208,7 +243,7 @@ def get_modern_theme_part2():
     }}
     
     QHeaderView::section:hover {{
-        background-color: {COLORS['background_elevated']};
+        background-color: {colors['background_elevated']};
     }}
     
     /* ============================================ */
@@ -216,19 +251,19 @@ def get_modern_theme_part2():
     /* ============================================ */
     
     QScrollBar:vertical {{
-        background-color: {COLORS['background']};
+        background-color: {colors['background']};
         width: 12px;
         border-radius: 6px;
     }}
     
     QScrollBar::handle:vertical {{
-        background-color: {COLORS['border']};
+        background-color: {colors['border']};
         border-radius: 6px;
         min-height: 30px;
     }}
     
     QScrollBar::handle:vertical:hover {{
-        background-color: {COLORS['text_muted']};
+        background-color: {colors['text_muted']};
     }}
     
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
@@ -236,19 +271,19 @@ def get_modern_theme_part2():
     }}
     
     QScrollBar:horizontal {{
-        background-color: {COLORS['background']};
+        background-color: {colors['background']};
         height: 12px;
         border-radius: 6px;
     }}
     
     QScrollBar::handle:horizontal {{
-        background-color: {COLORS['border']};
+        background-color: {colors['border']};
         border-radius: 6px;
         min-width: 30px;
     }}
     
     QScrollBar::handle:horizontal:hover {{
-        background-color: {COLORS['text_muted']};
+        background-color: {colors['text_muted']};
     }}
     
     QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
@@ -260,18 +295,18 @@ def get_modern_theme_part2():
     /* ============================================ */
     
     QProgressBar {{
-        background-color: {COLORS['progress_bg']};
+        background-color: {colors['progress_bg']};
         border: none;
         border-radius: 6px;
         text-align: center;
-        color: {COLORS['text_primary']};
+        color: {colors['text_primary']};
         font-weight: 600;
         min-height: 24px;
     }}
     
     QProgressBar::chunk {{
         background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-            stop:0 {COLORS['accent']}, stop:1 {COLORS['accent_hover']});
+            stop:0 {colors['accent']}, stop:1 {colors['accent_hover']});
         border-radius: 6px;
     }}
     
@@ -280,7 +315,7 @@ def get_modern_theme_part2():
     /* ============================================ */
     
     QCheckBox {{
-        color: {COLORS['text_primary']};
+        color: {colors['text_primary']};
         spacing: 8px;
     }}
     
@@ -288,21 +323,21 @@ def get_modern_theme_part2():
         width: 20px;
         height: 20px;
         border-radius: 4px;
-        border: 2px solid {COLORS['border']};
-        background-color: {COLORS['background_elevated']};
+        border: 2px solid {colors['border']};
+        background-color: {colors['background_elevated']};
     }}
     
     QCheckBox::indicator:checked {{
-        background-color: {COLORS['accent']};
-        border-color: {COLORS['accent']};
+        background-color: {colors['accent']};
+        border-color: {colors['accent']};
     }}
     
     QCheckBox::indicator:hover {{
-        border-color: {COLORS['text_muted']};
+        border-color: {colors['text_muted']};
     }}
     
     QRadioButton {{
-        color: {COLORS['text_primary']};
+        color: {colors['text_primary']};
         spacing: 8px;
     }}
     
@@ -310,25 +345,26 @@ def get_modern_theme_part2():
         width: 20px;
         height: 20px;
         border-radius: 10px;
-        border: 2px solid {COLORS['border']};
-        background-color: {COLORS['background_elevated']};
+        border: 2px solid {colors['border']};
+        background-color: {colors['background_elevated']};
     }}
     
     QRadioButton::indicator:checked {{
-        background-color: {COLORS['accent']};
-        border-color: {COLORS['accent']};
+        background-color: {colors['accent']};
+        border-color: {colors['accent']};
     }}
 """
 
 def get_modern_theme_part3():
     """Returns part 3 of the theme."""
+    colors = get_colors()  # Get dynamic colors with custom accent
     return f"""
     /* ============================================ */
     /*  LABELS                                     */
     /* ============================================ */
     
     QLabel {{
-        color: {COLORS['text_primary']};
+        color: {colors['text_primary']};
         background-color: transparent;
     }}
     
@@ -337,8 +373,8 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QGroupBox {{
-        background-color: {COLORS['background_alt']};
-        border: 1px solid {COLORS['border']};
+        background-color: {colors['background_alt']};
+        border: 1px solid {colors['border']};
         border-radius: 10px;
         margin-top: 12px;
         padding-top: 10px;
@@ -349,7 +385,7 @@ def get_modern_theme_part3():
         subcontrol-origin: margin;
         subcontrol-position: top left;
         padding: 5px 10px;
-        color: {COLORS['text_primary']};
+        color: {colors['text_primary']};
     }}
     
     /* ============================================ */
@@ -357,20 +393,20 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QSpinBox, QDoubleSpinBox {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
-        border: 2px solid {COLORS['border']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
+        border: 2px solid {colors['border']};
         border-radius: 8px;
         padding: 6px 10px;
     }}
     
     QSpinBox:focus, QDoubleSpinBox:focus {{
-        border-color: {COLORS['accent']};
+        border-color: {colors['accent']};
     }}
     
     QSpinBox::up-button, QSpinBox::down-button,
     QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
-        background-color: {COLORS['background_hover']};
+        background-color: {colors['background_hover']};
         border: none;
         width: 20px;
     }}
@@ -380,13 +416,13 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QSlider::groove:horizontal {{
-        background-color: {COLORS['progress_bg']};
+        background-color: {colors['progress_bg']};
         height: 6px;
         border-radius: 3px;
     }}
     
     QSlider::handle:horizontal {{
-        background-color: {COLORS['accent']};
+        background-color: {colors['accent']};
         width: 16px;
         height: 16px;
         margin: -5px 0;
@@ -394,11 +430,11 @@ def get_modern_theme_part3():
     }}
     
     QSlider::handle:horizontal:hover {{
-        background-color: {COLORS['accent_hover']};
+        background-color: {colors['accent_hover']};
     }}
     
     QSlider::sub-page:horizontal {{
-        background-color: {COLORS['accent']};
+        background-color: {colors['accent']};
         border-radius: 3px;
     }}
     
@@ -407,12 +443,12 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QScrollArea {{
-        background-color: {COLORS['background']};
+        background-color: {colors['background']};
         border: none;
     }}
     
     QScrollArea > QWidget > QWidget {{
-        background-color: {COLORS['background']};
+        background-color: {colors['background']};
     }}
     
     /* ============================================ */
@@ -420,9 +456,9 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QToolTip {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
-        border: 1px solid {COLORS['border']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
+        border: 1px solid {colors['border']};
         border-radius: 6px;
         padding: 6px 10px;
     }}
@@ -432,9 +468,9 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QStatusBar {{
-        background-color: {COLORS['surface']};
-        color: {COLORS['text_secondary']};
-        border-top: 1px solid {COLORS['border']};
+        background-color: {colors['surface']};
+        color: {colors['text_secondary']};
+        border-top: 1px solid {colors['border']};
         padding: 4px;
     }}
     
@@ -447,9 +483,9 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QMenu {{
-        background-color: {COLORS['background_elevated']};
-        color: {COLORS['text_primary']};
-        border: 1px solid {COLORS['border']};
+        background-color: {colors['background_elevated']};
+        color: {colors['text_primary']};
+        border: 1px solid {colors['border']};
         border-radius: 8px;
         padding: 4px;
     }}
@@ -460,7 +496,7 @@ def get_modern_theme_part3():
     }}
     
     QMenu::item:selected {{
-        background-color: {COLORS['background_hover']};
+        background-color: {colors['background_hover']};
     }}
     
     /* ============================================ */
@@ -468,8 +504,8 @@ def get_modern_theme_part3():
     /* ============================================ */
     
     QDialog {{
-        background-color: {COLORS['background']};
-        color: {COLORS['text_primary']};
+        background-color: {colors['background']};
+        color: {colors['text_primary']};
     }}
 """
 
