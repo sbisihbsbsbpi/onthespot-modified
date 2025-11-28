@@ -606,22 +606,21 @@ def get_progress_bar_style(status='default'):
     else:
         color = COLORS['accent']
 
-    # Clean progress bar with no border-radius for crisp rendering
+    # Clean progress bar - larger size for better text rendering
     return f"""
         QProgressBar {{
             background-color: {COLORS['progress_bg']};
-            border: none;
-            border-radius: 0px;
+            border: 1px solid {COLORS['border']};
+            border-radius: 3px;
             text-align: center;
             color: #ffffff;
-            font-size: 13px;
-            font-weight: normal;
-            min-height: 28px;
-            padding: 0px;
+            font-size: 11px;
+            min-height: 32px;
         }}
         QProgressBar::chunk {{
             background-color: {color};
-            border-radius: 0px;
+            border-radius: 2px;
+            margin: 1px;
         }}
     """
 
@@ -631,14 +630,13 @@ def get_button_style():
     return f"""
         QPushButton {{
             background-color: {COLORS['background_elevated']};
-            border: none;
-            border-radius: 0px;
-            padding: 4px 8px;
-            min-width: 28px;
-            min-height: 28px;
+            border: 1px solid {COLORS['border']};
+            border-radius: 3px;
+            padding: 4px;
         }}
         QPushButton:hover {{
             background-color: {COLORS['background_hover']};
+            border-color: {COLORS['accent']};
         }}
         QPushButton:pressed {{
             background-color: {COLORS['accent']};
