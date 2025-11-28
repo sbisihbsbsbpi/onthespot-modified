@@ -13,6 +13,13 @@ from .otsconfig import config
 from .parse_item import parsingworker
 from .runtimedata import get_logger, set_init_tray
 
+# Hot reload support for development
+try:
+    import jurigged
+    HOT_RELOAD_AVAILABLE = True
+except ImportError:
+    HOT_RELOAD_AVAILABLE = False
+
 logger = get_logger('gui')
 
 
@@ -47,6 +54,11 @@ class TrayApp:
 def main():
     config.migration()
     logger.info(f'OnTheSpot Version: {config.get("version")}')
+
+    # Enable hot reload for development - edit code and see changes without restart!
+    if HOT_RELOAD_AVAILABLE:
+        jurigged.watch(pattern="*.py")
+        logger.info("🔥 Hot reload enabled! Edit Python files and save to see changes instantly.")
 
     app = QApplication(sys.argv)
 
