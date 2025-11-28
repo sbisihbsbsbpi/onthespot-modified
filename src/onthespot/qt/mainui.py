@@ -543,13 +543,11 @@ class MainWindow(QMainWindow):
         service_label.setIcon(self.get_icon(item_service))
         service_label.setBackground(QColor(0, 0, 0, 0))
 
-        # Colored status badge - fixed height to fit in row
+        # Colored status badge
         status_label = QLabel(self.tbl_dl_progress)
         status_label.setText(self.tr("Waiting"))
         status_label.setStyleSheet(get_status_style("waiting"))
         status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_label.setFixedHeight(22)
-        status_label.setContentsMargins(0, 0, 0, 0)
         actions = DownloadActionsButtons(item['local_id'], item_metadata, pbar, copy_btn, cancel_btn, retry_btn, open_btn, locate_btn, delete_btn)
 
         rows = self.tbl_dl_progress.rowCount()
