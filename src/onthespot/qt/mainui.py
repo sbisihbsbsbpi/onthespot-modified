@@ -6,7 +6,7 @@ import traceback
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 from PyQt6 import uic, QtGui
 from PyQt6.QtCore import QThread, QDir, Qt, pyqtSignal, QObject, QTimer
-from PyQt6.QtGui import QIcon, QColor
+from PyQt6.QtGui import QIcon, QColor, QShortcut, QKeySequence
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHeaderView, QLabel, QPushButton, QProgressBar, QTableWidgetItem, QFileDialog, QRadioButton, QHBoxLayout, QWidget, QColorDialog, QStatusBar
 from ..accounts import get_account_token, FillAccountPool
 from ..api.apple_music import apple_music_add_account, apple_music_get_track_metadata
@@ -140,6 +140,11 @@ class MainWindow(QMainWindow):
 
         # Set the table header properties
         self.set_table_props()
+
+        # F5 shortcut to refresh all styles (for hot-reload development)
+        self.refresh_shortcut = QShortcut(QKeySequence("F5"), self)
+        self.refresh_shortcut.activated.connect(self.refresh_all_styles)
+
         logger.info("Main window init completed !")
 
 
@@ -148,6 +153,41 @@ class MainWindow(QMainWindow):
         theme = get_complete_theme()
         self.setStyleSheet(theme)
         self.centralwidget.setStyleSheet(theme)
+
+    def refresh_all_styles(self):
+        """Refresh all styles including download table items. Press F5 to trigger."""
+        logger.info("🔄 Refreshing all styles...")
+
+        # Refresh main theme
+        self.apply_modern_theme()
+
+        # Refresh all download table items
+        with download_queue_lock:
+            for local_id, item in download_queue.items():
+                if 'gui' in item:
+                    # Refresh status label style
+                    status = item.get('item_status', 'Waiting')
+                    if 'status_label' in item['gui']:
+                        item['gui']['status_label'].setStyleSheet(get_status_style(status))
+
+                    # Refresh progress bar style
+                    if 'progress_bar' in item['gui']:
+                        progress = item['gui']['progress_bar'].value()
+                        if progress == 100:
+                            item['gui']['progress_bar'].setStyleSheet(get_progress_bar_style('completed'))
+                        elif 'fail' in status.lower():
+                            item['gui']['progress_bar'].setStyleSheet(get_progress_bar_style('failed'))
+                        else:
+                            item['gui']['progress_bar'].setStyleSheet(get_progress_bar_style())
+
+                    # Refresh button styles
+                    btn_style = get_button_style()
+                    if 'btn' in item['gui']:
+                        for btn_name, btn in item['gui']['btn'].items():
+                            if btn and btn_name != 'actions':
+                                btn.setStyleSheet(btn_style)
+
+        logger.info("✅ Styles refreshed!")
 
 
     def setup_status_bar(self):
