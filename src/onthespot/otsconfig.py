@@ -116,6 +116,16 @@ class Config:
             "enable_retry_worker": False, # Enable retry worker, automatically retries failed downloads after a set time
             "retry_worker_delay": 10, # Amount of time to wait before retrying failed downloads, in minutes
 
+            # Stealth Mode Settings (Apple Music)
+            "stealth_mode_enabled": True, # Enable stealth mode to avoid detection
+            "stealth_min_delay": 30, # Minimum delay between downloads in seconds
+            "stealth_song_delay_ratio": 0.5, # Wait this ratio of song duration (0.5 = half song length)
+            "stealth_random_variation": 0.3, # Random variation in delay (0.3 = ±30%)
+            "stealth_max_tracks_per_hour": 20, # Maximum tracks per hour
+            "stealth_max_tracks_per_day": 100, # Maximum tracks per day
+            "stealth_session_break_tracks": 15, # Take a break after this many tracks
+            "stealth_session_break_minutes": 5, # Break duration in minutes
+
             # Search Settings
             "enable_search_tracks": True, # Enable listed category in search
             "enable_search_albums": True, # Enable listed category in search

@@ -23,6 +23,7 @@ from .api.generic import generic_get_track_metadata
 from .otsconfig import config
 from .runtimedata import get_logger, download_queue, download_queue_lock, account_pool, temp_download_path
 from .utils import format_item_path, convert_audio_format, embed_metadata, set_music_thumbnail, fix_mp3_metadata, add_to_m3u_file, strip_metadata, convert_video_format
+from .stealth import can_download, increment_download_count, calculate_stealth_delay, check_session_break, get_stealth_stats
 
 logger = get_logger("downloader")
 
@@ -134,6 +135,27 @@ class DownloadWorker(QObject):
                         time.sleep(0.2)
                         self.readd_item_to_download_queue(item)
                         continue
+
+                    # Stealth Mode: Check rate limits for Apple Music
+                    if item_service == "apple_music":
+                        can_dl, limit_msg = can_download()
+                        if not can_dl:
+                            logger.warning(f"Stealth mode: {limit_msg}")
+                            item['item_status'] = "Rate Limited"
+                            if self.gui:
+                                self.progress.emit(item, f"⏳ {limit_msg}", 0)
+                            item['available'] = True  # Make available for later
+                            time.sleep(60)  # Wait a minute before checking again
+                            continue
+
+                        # Check if we need a session break
+                        needs_break, break_duration = check_session_break()
+                        if needs_break:
+                            logger.info(f"Stealth mode: Taking session break for {break_duration/60:.1f} minutes")
+                            if self.gui:
+                                self.progress.emit(item, f"☕ Break ({break_duration/60:.0f}min)", 0)
+                            time.sleep(break_duration)
+
                 except (RuntimeError, OSError, StopIteration):
                     time.sleep(0.2)
                     continue
@@ -807,7 +829,34 @@ class DownloadWorker(QObject):
                     config.save()
                 except Exception:
                     pass
-                time.sleep(config.get("download_delay"))
+
+                # Stealth Mode: Apply human-like delay for Apple Music
+                if item_service == "apple_music" and config.get('stealth_mode_enabled'):
+                    # Increment download counter
+                    increment_download_count()
+
+                    # Get song duration for delay calculation
+                    song_duration = item_metadata.get('length', 180000)  # Default 3 min
+                    try:
+                        song_duration = int(song_duration)
+                    except (ValueError, TypeError):
+                        song_duration = 180000
+
+                    # Calculate stealth delay (half of song duration + randomness)
+                    delay = calculate_stealth_delay(song_duration, "apple_music")
+
+                    stats = get_stealth_stats()
+                    logger.info(f"Stealth mode: Waiting {delay:.0f}s before next download "
+                               f"({stats['tracks_this_hour']}/hr, {stats['tracks_today']}/day)")
+
+                    if self.gui:
+                        # Show waiting status with countdown
+                        self.progress.emit(item, f"⏳ Wait {delay:.0f}s", 100)
+
+                    time.sleep(delay)
+                else:
+                    time.sleep(config.get("download_delay"))
+
                 self.readd_item_to_download_queue(item)
                 continue
             except Exception as e:
