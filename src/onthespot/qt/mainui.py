@@ -471,7 +471,7 @@ class MainWindow(QMainWindow):
         pbar = QProgressBar()
         pbar.setStyleSheet(get_progress_bar_style())
         pbar.setValue(0)
-        pbar.setMinimumHeight(26)
+        pbar.setFixedHeight(12)
 
         # Button styling
         btn_style = get_button_style()
