@@ -596,7 +596,7 @@ def get_status_style(status):
 
 
 def get_progress_bar_style(status='default'):
-    """Returns progress bar style with clean rendering."""
+    """Returns progress bar style."""
     if status == 'completed':
         color = COLORS['success']
     elif status == 'failed':
@@ -606,37 +606,38 @@ def get_progress_bar_style(status='default'):
     else:
         color = COLORS['accent']
 
-    # Clean progress bar - larger size for better text rendering
     return f"""
         QProgressBar {{
             background-color: {COLORS['progress_bg']};
-            border: 1px solid {COLORS['border']};
-            border-radius: 3px;
+            border: none;
+            border-radius: 4px;
             text-align: center;
-            color: #ffffff;
-            font-size: 11px;
-            min-height: 32px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            min-height: 22px;
+            max-height: 26px;
         }}
         QProgressBar::chunk {{
             background-color: {color};
-            border-radius: 2px;
-            margin: 1px;
+            border-radius: 4px;
         }}
     """
 
 
 def get_button_style():
-    """Returns clean button styling for action buttons."""
+    """Returns button styling for action buttons."""
     return f"""
         QPushButton {{
             background-color: {COLORS['background_elevated']};
-            border: 1px solid {COLORS['border']};
-            border-radius: 3px;
-            padding: 4px;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            min-width: 26px;
+            min-height: 22px;
         }}
         QPushButton:hover {{
             background-color: {COLORS['background_hover']};
-            border-color: {COLORS['accent']};
         }}
         QPushButton:pressed {{
             background-color: {COLORS['accent']};

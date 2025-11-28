@@ -7,7 +7,6 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 from PyQt6 import uic, QtGui
 from PyQt6.QtCore import QThread, QDir, Qt, pyqtSignal, QObject, QTimer
 from PyQt6.QtGui import QIcon, QColor
-from PyQt6.QtCore import QSize
 from PyQt6.QtWidgets import QApplication, QMainWindow, QHeaderView, QLabel, QPushButton, QProgressBar, QTableWidgetItem, QFileDialog, QRadioButton, QHBoxLayout, QWidget, QColorDialog, QStatusBar
 from ..accounts import get_account_token, FillAccountPool
 from ..api.apple_music import apple_music_add_account, apple_music_get_track_metadata
@@ -468,63 +467,56 @@ class MainWindow(QMainWindow):
         locate_btn = None
         delete_btn = None
 
-        # Items - Clean styled progress bar
+        # Progress bar
         pbar = QProgressBar()
         pbar.setStyleSheet(get_progress_bar_style())
         pbar.setValue(0)
-        pbar.setMinimumHeight(32)
+        pbar.setMinimumHeight(26)
 
-        # Clean button styling - larger icons for better visibility
+        # Button styling
         btn_style = get_button_style()
-        icon_size = QSize(20, 20)  # Larger icon size for crisp rendering
 
         if config.get("download_copy_btn"):
             copy_btn = QPushButton()
             copy_btn.setIcon(self.get_icon('link'))
-            copy_btn.setIconSize(icon_size)
             copy_btn.setToolTip(self.tr('Copy'))
-            copy_btn.setFixedSize(32, 32)
+            copy_btn.setMinimumSize(30, 26)
             copy_btn.setStyleSheet(btn_style)
             copy_btn.hide()
         cancel_btn = QPushButton()
         cancel_btn.setIcon(self.get_icon('stop'))
-        cancel_btn.setIconSize(icon_size)
         cancel_btn.setToolTip(self.tr('Cancel'))
-        cancel_btn.setFixedSize(32, 32)
+        cancel_btn.setMinimumSize(30, 26)
         cancel_btn.setStyleSheet(btn_style)
         cancel_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         retry_btn = QPushButton()
         retry_btn.setIcon(self.get_icon('retry'))
-        retry_btn.setIconSize(icon_size)
         retry_btn.setToolTip(self.tr('Retry'))
-        retry_btn.setFixedSize(32, 32)
+        retry_btn.setMinimumSize(30, 26)
         retry_btn.setStyleSheet(btn_style)
         retry_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         retry_btn.hide()
         if config.get("download_open_btn"):
             open_btn = QPushButton()
             open_btn.setIcon(self.get_icon('file'))
-            open_btn.setIconSize(icon_size)
             open_btn.setToolTip(self.tr('Open'))
-            open_btn.setFixedSize(32, 32)
+            open_btn.setMinimumSize(30, 26)
             open_btn.setStyleSheet(btn_style)
             open_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             open_btn.hide()
         if config.get("download_locate_btn"):
             locate_btn = QPushButton()
             locate_btn.setIcon(self.get_icon('folder'))
-            locate_btn.setIconSize(icon_size)
             locate_btn.setToolTip(self.tr('Locate'))
-            locate_btn.setFixedSize(32, 32)
+            locate_btn.setMinimumSize(30, 26)
             locate_btn.setStyleSheet(btn_style)
             locate_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             locate_btn.hide()
         if config.get("download_delete_btn"):
             delete_btn = QPushButton()
             delete_btn.setIcon(self.get_icon('trash'))
-            delete_btn.setIconSize(icon_size)
             delete_btn.setToolTip(self.tr('Delete'))
-            delete_btn.setFixedSize(32, 32)
+            delete_btn.setMinimumSize(30, 26)
             delete_btn.setStyleSheet(btn_style)
             delete_btn.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             delete_btn.hide()

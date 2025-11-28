@@ -2,13 +2,9 @@ import os
 # Required for librespot-python
 os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
 
-# Enable high-DPI scaling for crisp rendering on Retina/HiDPI displays
-os.environ['QT_ENABLE_HIGHDPI_SCALING'] = '1'
-os.environ['QT_AUTO_SCREEN_SCALE_FACTOR'] = '1'
-
 import sys
 import threading
-from PyQt6.QtCore import QTranslator, Qt
+from PyQt6.QtCore import QTranslator
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, QStyle
 from .qt.mainui import MainWindow
