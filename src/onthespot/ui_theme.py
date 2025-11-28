@@ -610,17 +610,17 @@ def get_progress_bar_style(status='default'):
         QProgressBar {{
             background-color: {COLORS['progress_bg']};
             border: none;
-            border-radius: 3px;
+            border-radius: 4px;
             text-align: center;
             color: white;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: bold;
-            min-height: 18px;
-            max-height: 18px;
+            min-height: 24px;
+            max-height: 24px;
         }}
         QProgressBar::chunk {{
             background-color: {color};
-            border-radius: 3px;
+            border-radius: 4px;
         }}
     """
 
