@@ -849,11 +849,20 @@ class DownloadWorker(QObject):
                     logger.info(f"Stealth mode: Waiting {delay:.0f}s before next download "
                                f"({stats['tracks_this_hour']}/hr, {stats['tracks_today']}/day)")
 
-                    if self.gui:
-                        # Show waiting status with countdown
-                        self.progress.emit(item, f"⏳ Wait {delay:.0f}s", 100)
+                    # Countdown timer with live updates
+                    remaining = int(delay)
+                    while remaining > 0:
+                        if self.gui:
+                            mins, secs = divmod(remaining, 60)
+                            if mins > 0:
+                                self.progress.emit(item, f"✓ Done · Wait {mins}m {secs}s", 100)
+                            else:
+                                self.progress.emit(item, f"✓ Done · Wait {secs}s", 100)
+                        time.sleep(1)
+                        remaining -= 1
 
-                    time.sleep(delay)
+                    if self.gui:
+                        self.progress.emit(item, self.tr("Downloaded"), 100)
                 else:
                     time.sleep(config.get("download_delay"))
 
