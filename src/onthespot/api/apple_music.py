@@ -58,7 +58,7 @@ def apple_music_login_user(account):
 
         # Retrieve token from the homepage
         home_page = session.get("https://music.apple.com").text
-        index_js_uri = re.search(r"/(assets/index-legacy-[^/]+\.js)", home_page).group(1)
+        index_js_uri = re.search(r"/(assets/index-legacy[~-][^/]+\.js)", home_page).group(1)
         index_js_page = session.get(f"https://music.apple.com/{index_js_uri}").text
         token = re.search('(?=eyJh)(.*?)(?=")', index_js_page).group(1)
         session.headers.update({"authorization": f"Bearer {token}"})
@@ -331,7 +331,7 @@ def apple_music_get_webplayback_info(session, item_id):
 
 def apple_music_get_decryption_key(session, stream_url, item_id):
     # Extract the PSSH (Protection System Specific Header) from the m3u8 object
-    m3u8_obj = m3u8.load(stream_url)
+    m3u8_obj = m3u8.load(stream_url, verify_ssl=False)
     pssh = m3u8_obj.keys[0].uri if m3u8_obj.keys else None
 
     try:
