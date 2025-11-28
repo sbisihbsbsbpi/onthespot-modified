@@ -85,8 +85,8 @@ def get_modern_theme():
         color: {colors['text_secondary']};
         padding: 10px 20px;
         margin-right: 2px;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
         border: none;
         font-weight: 500;
     }}
@@ -104,25 +104,25 @@ def get_modern_theme():
     /* ============================================ */
     /*  BUTTONS                                    */
     /* ============================================ */
-    
+
     QPushButton {{
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
         border: none;
-        border-radius: 8px;
-        padding: 10px 20px;
+        border-radius: 4px;
+        padding: 8px 16px;
         font-weight: 600;
         min-height: 20px;
     }}
-    
+
     QPushButton:hover {{
         background-color: {colors['background_hover']};
     }}
-    
+
     QPushButton:pressed {{
         background-color: {colors['border']};
     }}
-    
+
     QPushButton:disabled {{
         background-color: {colors['surface']};
         color: {colors['text_muted']};
@@ -180,9 +180,9 @@ def get_modern_theme():
     QComboBox {{
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
-        border: 2px solid {colors['border']};
-        border-radius: 8px;
-        padding: 8px 14px 8px 10px;
+        border: 1px solid {colors['border']};
+        border-radius: 4px;
+        padding: 6px 12px 6px 10px;
         min-height: 24px;
     }}
 
@@ -210,7 +210,7 @@ def get_modern_theme():
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
         border: 1px solid {colors['border']};
-        border-radius: 8px;
+        border-radius: 4px;
         selection-background-color: {colors['accent']};
         selection-color: #000000;
         padding: 4px;
@@ -240,7 +240,7 @@ def get_modern_theme_part2():
         alternate-background-color: {colors['background_alt']};
         color: {colors['text_primary']};
         border: none;
-        border-radius: 8px;
+        border-radius: 4px;
         gridline-color: {colors['surface']};
         selection-background-color: {colors['background_hover']};
         selection-color: {colors['text_primary']};
@@ -279,40 +279,40 @@ def get_modern_theme_part2():
     
     QScrollBar:vertical {{
         background-color: {colors['background']};
-        width: 12px;
-        border-radius: 6px;
+        width: 10px;
+        border-radius: 5px;
     }}
-    
+
     QScrollBar::handle:vertical {{
         background-color: {colors['border']};
-        border-radius: 6px;
+        border-radius: 5px;
         min-height: 30px;
     }}
-    
+
     QScrollBar::handle:vertical:hover {{
         background-color: {colors['text_muted']};
     }}
-    
+
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
         height: 0px;
     }}
-    
+
     QScrollBar:horizontal {{
         background-color: {colors['background']};
-        height: 12px;
-        border-radius: 6px;
+        height: 10px;
+        border-radius: 5px;
     }}
-    
+
     QScrollBar::handle:horizontal {{
         background-color: {colors['border']};
-        border-radius: 6px;
+        border-radius: 5px;
         min-width: 30px;
     }}
-    
+
     QScrollBar::handle:horizontal:hover {{
         background-color: {colors['text_muted']};
     }}
-    
+
     QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
         width: 0px;
     }}
@@ -324,17 +324,16 @@ def get_modern_theme_part2():
     QProgressBar {{
         background-color: {colors['progress_bg']};
         border: none;
-        border-radius: 6px;
+        border-radius: 3px;
         text-align: center;
         color: {colors['text_primary']};
         font-weight: 600;
-        min-height: 24px;
+        min-height: 20px;
     }}
-    
+
     QProgressBar::chunk {{
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-            stop:0 {colors['accent']}, stop:1 {colors['accent_hover']});
-        border-radius: 6px;
+        background-color: {colors['accent']};
+        border-radius: 3px;
     }}
     
     /* ============================================ */
@@ -347,10 +346,10 @@ def get_modern_theme_part2():
     }}
     
     QCheckBox::indicator {{
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        border: 2px solid {colors['border']};
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        border: 1px solid {colors['border']};
         background-color: {colors['background_elevated']};
     }}
     
@@ -374,7 +373,7 @@ def get_modern_theme_part2():
         width: 16px;
         height: 16px;
         border-radius: 8px;
-        border: 2px solid #888888;
+        border: 1px solid #888888;
         background-color: #2a2a2a;
     }}
 
@@ -409,7 +408,7 @@ def get_modern_theme_part3():
     QGroupBox {{
         background-color: {colors['background_alt']};
         border: 1px solid {colors['border']};
-        border-radius: 10px;
+        border-radius: 4px;
         margin-top: 12px;
         padding-top: 10px;
         font-weight: 600;
@@ -429,8 +428,8 @@ def get_modern_theme_part3():
     QSpinBox, QDoubleSpinBox {{
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
-        border: 2px solid {colors['border']};
-        border-radius: 8px;
+        border: 1px solid {colors['border']};
+        border-radius: 4px;
         padding: 6px 10px;
     }}
     
@@ -493,7 +492,7 @@ def get_modern_theme_part3():
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
         border: 1px solid {colors['border']};
-        border-radius: 6px;
+        border-radius: 4px;
         padding: 6px 10px;
     }}
     
@@ -520,7 +519,7 @@ def get_modern_theme_part3():
         background-color: {colors['background_elevated']};
         color: {colors['text_primary']};
         border: 1px solid {colors['border']};
-        border-radius: 8px;
+        border-radius: 4px;
         padding: 4px;
     }}
     
